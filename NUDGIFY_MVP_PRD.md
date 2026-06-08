@@ -1,37 +1,25 @@
-# NUDGIFY MVP - Product Requirements Document (PRD)
+# NUDGIFY MVP - FINAL PRD & TECH STACK
 
-## Project Overview
-Nudgify is a food marketplace platform connecting home chefs with customers through a mobile application while providing administrators with a centralized web dashboard for monitoring operations, orders, chefs, and customer activity.
+## Project Vision
+Nudgify is a home-chef marketplace platform that connects customers with independent chefs through a mobile application while providing administrators with a web dashboard to monitor platform activity, chefs, customers, dishes, and orders.
 
-This MVP is focused on demonstrating a complete full-stack software ecosystem rather than building a production-ready startup platform.
-
----
-
-# Objectives
-
-## Primary Goal
-Build a multi-role platform consisting of:
-
-1. Customer Mobile App
-2. Chef Mobile App
-3. Admin Web Dashboard
-4. Backend API
-5. Database
-
-The platform should allow customers to discover food from home chefs, place orders, and track order history while chefs manage menus and incoming orders.
+The goal of this project is to demonstrate a complete software ecosystem involving mobile development, authentication, database design, role-based access control, analytics, and administration.
 
 ---
 
 # User Roles
 
 ## Customer
-A user who browses food and places orders.
+Customers use the mobile application to discover chefs and order food.
 
-### Capabilities
+### Features
 
-- Register/Login
+- Register
+- Login
+- Logout
 - Browse chefs
-- Browse menus
+- View chef profiles
+- Browse dishes
 - View dish details
 - Place orders
 - View order history
@@ -40,37 +28,42 @@ A user who browses food and places orders.
 ---
 
 ## Chef
-A home chef who sells food through the platform.
+Chefs use the same mobile application but access chef-specific functionality.
 
-### Capabilities
+### Features
 
-- Register/Login
-- Create chef profile
-- Add dishes
-- Edit dishes
-- Delete dishes
-- Manage menu
-- View incoming orders
-- Accept/Reject orders
-- Mark orders completed
-- View earnings summary
+- Register as Chef
+- Login
+- Logout
+- Manage Profile
+- Add Dishes
+- Edit Dishes
+- Delete Dishes
+- Manage Menu
+- View Orders
+- Accept Orders
+- Reject Orders
+- Mark Orders Completed
+- View Earnings Summary
 
 ---
 
 ## Admin
-Platform owner.
+Admins use a web dashboard.
 
-### Capabilities
+### Features
 
-- View all users
-- View all chefs
-- View all orders
-- View analytics
-- Manage platform data
+- View Customers
+- View Chefs
+- View Orders
+- View Analytics
+- Monitor Platform Activity
+- Disable Chef Accounts
+- Manage Platform Data
 
 ---
 
-# Core Features
+# Core Modules
 
 ## Authentication Module
 
@@ -86,57 +79,55 @@ Platform owner.
 - Login
 - Logout
 
-### Security
+### Admin Authentication
 
-- JWT Authentication
-- Password Hashing
+- Secure Login
 
 ---
 
-# Customer Module
+## Customer Module
 
-## Chef Discovery
+### Browse Chefs
 Customer can:
 
-- Browse available chefs
+- View available chefs
 - Search chefs
-- View chef profiles
+- View chef profile
 
 ### Chef Profile Information
 
 - Name
-- Description
+- Bio
 - Cuisine Type
-- Rating (Static MVP)
-- Menu Items
+- Profile Image
 
 ---
 
-## Food Browsing
+### Browse Food
 Customer can:
 
 - View menu
 - View food details
 - View pricing
 
-### Food Details
+Food Details:
 
 - Dish Name
 - Description
 - Price
-- Category
 - Availability Status
+- Dish Image
 
 ---
 
-## Order Placement
+### Place Orders
 Customer can:
 
-- Select dish
-- Specify quantity
-- Place order
+- Select dishes
+- Select quantity
+- Confirm order
 
-### Order Status
+Order Status:
 
 - Pending
 - Accepted
@@ -145,127 +136,155 @@ Customer can:
 
 ---
 
-## Order History
+### Order History
 Customer can:
 
 - View previous orders
-- View order status
+- Track order status
 
 ---
 
-# Chef Module
+## Chef Module
 
-## Chef Profile
-Chef can manage:
+### Profile Management
+Chef can update:
 
+- Name
 - Profile Picture
 - Bio
 - Cuisine Type
-- Contact Information
 
 ---
 
-## Menu Management
+### Menu Management
 Chef can:
 
-- Add dishes
-- Edit dishes
-- Delete dishes
-- Mark dish unavailable
+- Add Dish
+- Edit Dish
+- Delete Dish
+- Mark Dish Available/Unavailable
 
 ---
 
-## Order Management
+### Order Management
 Chef can:
 
-- View orders
-- Accept orders
-- Reject orders
-- Mark completed
+- View Incoming Orders
+- Accept Orders
+- Reject Orders
+- Complete Orders
 
 ---
 
-## Earnings Dashboard
+### Earnings Dashboard
 Chef can view:
 
 - Total Orders
-- Total Revenue
+- Revenue
 - Completed Orders
 
 ---
 
-# Admin Dashboard
+## Admin Dashboard
 
-## Overview Dashboard
+### Dashboard Overview
 Display:
 
 - Total Customers
 - Total Chefs
 - Total Orders
-- Revenue Generated
+- Revenue
 
 ---
 
-## Chef Management
+### Customer Management
 Admin can:
 
-- View chefs
-- View chef performance
-- Disable chef account
+- View Customers
+- View Activity
 
 ---
 
-## Customer Management
+### Chef Management
 Admin can:
 
-- View customers
-- View order activity
+- View Chefs
+- View Performance
+- Disable Accounts
 
 ---
 
-## Order Analytics
+### Order Analytics
 Admin can view:
 
-- Orders per day
-- Orders per chef
-- Most popular dishes
+- Orders Per Day
+- Orders Per Chef
+- Popular Dishes
+- Platform Statistics
 
 ---
 
-# Database Entities
+# Database Design
 
-## User
+## Users
+Fields:
 
 - id
-- name
+- full_name
 - email
-- password
+- phone
 - role
+- created_at
+
+Roles:
+
+- customer
+- chef
+- admin
 
 ---
 
-## Chef
+## Chef Profiles
+Fields:
 
 - id
 - user_id
 - bio
 - cuisine_type
 - profile_image
+- is_active
+
+Relationship:
+
+User → Chef Profile
+
+One-to-One
 
 ---
 
-## Dish
+## Dishes
+Fields:
 
 - id
 - chef_id
 - name
 - description
 - price
+- image_url
 - availability
+
+Relationship:
+
+Chef → Dishes
+
+One-to-Many
+
+One Chef can have many Dishes.
 
 ---
 
-## Order
+## Orders
+Fields:
 
 - id
 - customer_id
@@ -274,98 +293,182 @@ Admin can view:
 - status
 - created_at
 
+Relationship:
+
+Customer → Orders
+
+One-to-Many
+
+Chef → Orders
+
+One-to-Many
+
 ---
 
-## Order Item
+## Order Items
+Fields:
 
 - id
 - order_id
 - dish_id
 - quantity
+- price
+
+Relationship:
+
+Order → Order Items
+
+One-to-Many
 
 ---
 
-# Technology Stack
+# Final Technology Stack
 
-## Mobile App
-React Native + Expo
+## Mobile Application
+Framework:
+
+- React Native
+
+Tooling:
+
+- Expo
+
+Navigation:
+
+- Expo Router
+
+State Management:
+
+- Zustand
+
+Purpose:
+
+- Customer Portal
+- Chef Portal
+
+Single Application
+
+Role-based UI
 
 ---
 
 ## Admin Dashboard
-Next.js
+Framework:
+
+- Next.js
+
+Purpose:
+
+- Analytics
+- Customer Management
+- Chef Management
+- Order Monitoring
+
+Charts:
+
+- Recharts
+
+Deployment:
+
+- Vercel
 
 ---
 
-## Backend
-Node.js
-Express.js
+## Backend Services
+Platform:
+
+- Supabase
+
+Services Used:
+
+### Authentication
+Supabase Auth
+
+Handles:
+
+- Registration
+- Login
+- Sessions
 
 ---
 
-## Database
+### Database
+PostgreSQL (Supabase)
+
+Stores:
+
+- Users
+- Chefs
+- Dishes
+- Orders
+- Order Items
+
+---
+
+### File Storage
+Supabase Storage
+
+Stores:
+
+- Chef Images
+- Dish Images
+
+---
+
+## Database Engine
 PostgreSQL
 
----
+Reason:
 
-## Authentication
-JWT
+- Relational Data
+- Strong Relationships
+- Industry Standard
 
 ---
 
 ## Deployment
-Frontend:
 
-- Vercel
+### Mobile App
+Expo
 
-Backend:
+### Admin Dashboard
+Vercel
 
-- Render / Railway
-
-Database:
-
-- Supabase PostgreSQL
+### Backend Services
+Supabase
 
 ---
 
-# Non-MVP Features (Future Scope)
-These features are intentionally excluded:
+# Features Removed From MVP
+The following are intentionally excluded:
 
+- Real Payment Gateway
 - Live Delivery Tracking
-- Google Maps Integration
-- Real-Time Chat
-- Payment Gateway
+- Maps Integration
+- Real-time Chat
+- Push Notifications
+- AI Recommendations
 - Corporate Partnerships
 - Employee Discounts
-- AI Recommendations
-- Subscription Plans
 - Loyalty Programs
-- Push Notifications
+- Subscription Plans
 
 ---
 
 # Success Criteria
-The project will be considered successful if:
+Project is successful when:
 
-1. Customer can register and place orders.
-2. Chef can manage menus and orders.
-3. Admin can monitor platform activity.
-4. Data persists in PostgreSQL.
-5. Mobile application functions end-to-end.
-6. Admin dashboard displays analytics.
-7. Application is deployed and accessible online.
+1. Customer can register and login.
+2. Chef can register and manage dishes.
+3. Customer can place orders.
+4. Chef can manage orders.
+5. Admin dashboard displays analytics.
+6. Data persists in PostgreSQL.
+7. Images upload successfully.
+8. Application is deployed online.
+9. End-to-end flow works without manual intervention.
 
 ---
 
-# Target Outcome
-A fully functional full-stack marketplace platform demonstrating:
-
-- Mobile Development
-- Backend Development
-- Database Design
-- Authentication
-- Role-Based Access Control
-- Dashboard Analytics
-- Real-World Software Architecture
-
-Suitable for internship evaluation, portfolio presentation, and technical interviews.
+# Resume Description
+Built a full-stack food marketplace platform connecting customers and home chefs using React Native, Next.js, Supabase, PostgreSQL, authentication, role-based access control, analytics dashboards, and cloud storage.

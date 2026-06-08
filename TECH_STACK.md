@@ -1,321 +1,474 @@
-# NUDGIFY MVP - Technology Stack
+# NUDGIFY MVP - FINAL PRD & TECH STACK
 
-## Overview
-This document outlines the complete technology stack for the Nudgify food marketplace platform, including tools, frameworks, and services selected for the MVP.
+## Project Vision
+Nudgify is a home-chef marketplace platform that connects customers with independent chefs through a mobile application while providing administrators with a web dashboard to monitor platform activity, chefs, customers, dishes, and orders.
 
----
-
-## Frontend Stack
-
-### Customer Mobile App
-- **Framework**: React Native
-- **Runtime**: Expo
-- **Language**: JavaScript/TypeScript
-- **State Management**: Redux Toolkit or Zustand
-- **HTTP Client**: Axios
-- **Navigation**: React Navigation
-- **UI Components**: React Native Paper or Native Base
-- **Deployment**: Expo Go / EAS Build
-
-### Chef Mobile App
-- **Framework**: React Native
-- **Runtime**: Expo
-- **Language**: JavaScript/TypeScript
-- **State Management**: Redux Toolkit or Zustand
-- **HTTP Client**: Axios
-- **Navigation**: React Navigation
-- **UI Components**: React Native Paper or Native Base
-- **Deployment**: Expo Go / EAS Build
-
-### Admin Web Dashboard
-- **Framework**: Next.js 14+
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Library**: Shadcn/ui or Material-UI
-- **State Management**: Zustand or TanStack Query
-- **Charts**: Recharts or Chart.js
-- **Tables**: TanStack Table (React Table)
-- **Form Handling**: React Hook Form
-- **Deployment**: Vercel
+The goal of this project is to demonstrate a complete software ecosystem involving mobile development, authentication, database design, role-based access control, analytics, and administration.
 
 ---
 
-## Backend Stack
+# User Roles
 
-### API Server
-- **Runtime**: Node.js 18+
-- **Framework**: Express.js 4.x
-- **Language**: JavaScript/TypeScript
-- **Port**: 5000 (configurable)
+## Customer
+Customers use the mobile application to discover chefs and order food.
 
-### Middleware & Utilities
-- **Authentication**: jsonwebtoken (JWT)
-- **Password Hashing**: bcryptjs
-- **Environment Variables**: dotenv
-- **CORS**: cors middleware
-- **Request Logging**: morgan
-- **Error Handling**: Custom error middleware
-- **Validation**: Joi or Zod
-- **API Documentation**: Swagger/OpenAPI (optional for MVP)
+### Features
 
-### Deployment
-- **Platform**: Render or Railway
-- **Node Version**: 18.x LTS or higher
+- Register
+- Login
+- Logout
+- Browse chefs
+- View chef profiles
+- Browse dishes
+- View dish details
+- Place orders
+- View order history
+- Manage profile
 
 ---
 
-## Database Stack
+## Chef
+Chefs use the same mobile application but access chef-specific functionality.
 
-### Primary Database
-- **Type**: PostgreSQL 14+
-- **Provider**: Supabase
-- **Connection Pool**: pgBouncer (Supabase managed)
+### Features
 
-### Database Features
-- **Migrations**: Supabase CLI or custom migration scripts
-- **ORM**: Prisma (recommended) or pg library
-- **Authentication DB**: Supabase Auth (JWT-based)
-
----
-
-## Authentication & Security
-
-### JWT Authentication
-- **Library**: jsonwebtoken
-- **Algorithm**: HS256 or RS256
-- **Token Expiry**: 
-  - Access Token: 15 minutes
-  - Refresh Token: 7 days
-
-### Password Security
-- **Hashing Algorithm**: bcrypt
-- **Salt Rounds**: 10
-
-### Environment Variables
-- Stored in `.env` file (git-ignored)
-- Managed via platform-specific environment configs
+- Register as Chef
+- Login
+- Logout
+- Manage Profile
+- Add Dishes
+- Edit Dishes
+- Delete Dishes
+- Manage Menu
+- View Orders
+- Accept Orders
+- Reject Orders
+- Mark Orders Completed
+- View Earnings Summary
 
 ---
 
-## Development Tools
+## Admin
+Admins use a web dashboard.
 
-### Package Manager
-- **npm** 9+ or **yarn** 3+
+### Features
 
-### Version Control
-- **Git**
-- **Repository**: GitHub
-
-### Code Quality
-- **Linting**: ESLint
-- **Formatting**: Prettier
-- **Type Checking**: TypeScript
-
-### Testing (Optional for MVP)
-- **Unit Tests**: Jest
-- **API Testing**: Postman or Insomnia
-- **Mobile Testing**: Detox or Appium
+- View Customers
+- View Chefs
+- View Orders
+- View Analytics
+- Monitor Platform Activity
+- Disable Chef Accounts
+- Manage Platform Data
 
 ---
 
-## Deployment & DevOps
+# Core Modules
 
-### Hosting Services
-| Component | Provider | Service |
-|-----------|----------|---------|
-| Frontend (Mobile) | Expo | EAS Build & Submission |
-| Frontend (Web) | Vercel | Next.js Deployment |
-| Backend API | Render / Railway | Node.js Container |
-| Database | Supabase | PostgreSQL Managed |
+## Authentication Module
 
-### CI/CD (Future Enhancement)
-- GitHub Actions for automated deployments
-- Automated testing on pull requests
-- Staging environment for testing
+### Customer Authentication
 
----
+- Sign Up
+- Login
+- Logout
 
-## Architecture Overview
+### Chef Authentication
 
-```
-┌─────────────────────────────────────────────────────┐
-│                    Client Layer                     │
-├────────────────────┬────────────────┬───────────────┤
-│ Customer App       │ Chef App       │ Admin Web     │
-│ (React Native)     │ (React Native) │ (Next.js)     │
-└────────────────────┴────────────────┴───────────────┘
-                          │
-                    ┌─────┴─────┐
-                    │   API     │
-                    │(Express)  │
-                    └─────┬─────┘
-                          │
-            ┌─────────────┴──────────────┐
-            │                            │
-       ┌────▼─────┐            ┌────────▼──────┐
-       │PostgreSQL│            │Supabase Auth  │
-       │Database  │            │(JWT)          │
-       └──────────┘            └───────────────┘
-```
+- Sign Up
+- Login
+- Logout
+
+### Admin Authentication
+
+- Secure Login
 
 ---
 
-## API Communication
+## Customer Module
 
-### Base URL
-- **Development**: `http://localhost:5000`
-- **Production**: `https://nudgify-api.render.com` (or Railway equivalent)
+### Browse Chefs
+Customer can:
 
-### Request Format
-- **Content-Type**: `application/json`
-- **Authentication**: Bearer Token in Authorization header
+- View available chefs
+- Search chefs
+- View chef profile
 
-### Response Format
-```json
-{
-  "success": true,
-  "data": {},
-  "message": "Success message"
-}
-```
+### Chef Profile Information
+
+- Name
+- Bio
+- Cuisine Type
+- Profile Image
 
 ---
 
-## File Structure
+### Browse Food
+Customer can:
 
-```
-nudgify/
-├── backend/                    # Express API
-│   ├── src/
-│   │   ├── routes/
-│   │   ├── controllers/
-│   │   ├── models/
-│   │   ├── middleware/
-│   │   └── config/
-│   ├── .env
-│   └── package.json
-├── mobile/                     # React Native (Expo)
-│   ├── app/
-│   ├── src/
-│   ├── screens/
-│   ├── components/
-│   └── package.json
-├── admin/                      # Next.js Dashboard
-│   ├── app/
-│   ├── components/
-│   ├── lib/
-│   └── package.json
-└── docs/
-    ├── NUDGIFY_MVP_PRD.md
-    └── TECH_STACK.md
-```
+- View menu
+- View food details
+- View pricing
+
+Food Details:
+
+- Dish Name
+- Description
+- Price
+- Availability Status
+- Dish Image
 
 ---
 
-## Environment Configuration
+### Place Orders
+Customer can:
 
-### Backend (.env)
-```
-NODE_ENV=development
-PORT=5000
-DATABASE_URL=postgresql://...
-JWT_SECRET=your-secret-key
-JWT_EXPIRY=15m
-REFRESH_TOKEN_EXPIRY=7d
-```
+- Select dishes
+- Select quantity
+- Confirm order
 
-### Mobile (.env)
-```
-REACT_APP_API_URL=http://localhost:5000
-REACT_APP_API_TIMEOUT=10000
-```
+Order Status:
 
-### Admin Dashboard (.env.local)
-```
-NEXT_PUBLIC_API_URL=http://localhost:5000
-NEXT_PUBLIC_APP_NAME=Nudgify
-```
+- Pending
+- Accepted
+- Rejected
+- Completed
 
 ---
 
-## Dependencies Summary
+### Order History
+Customer can:
 
-### Backend Core
-- express: ^4.18.0
-- jsonwebtoken: ^9.0.0
-- bcryptjs: ^2.4.3
-- dotenv: ^16.0.0
-- cors: ^2.8.5
-- pg: ^8.10.0 (or prisma: ^5.0.0)
-
-### Mobile Core
-- react-native: 0.72+
-- expo: ^49.0.0
-- react-navigation: ^6.0.0
-- axios: ^1.4.0
-
-### Admin Dashboard Core
-- next: ^14.0.0
-- react: ^18.0.0
-- tailwindcss: ^3.0.0
-- shadcn/ui: latest
-- recharts: ^2.8.0
+- View previous orders
+- Track order status
 
 ---
 
-## Scalability Considerations
+## Chef Module
 
-### Current MVP Level
-- Single backend instance
-- Supabase managed database
-- Suitable for 100-1000 concurrent users
+### Profile Management
+Chef can update:
 
-### Future Scaling Improvements
-- Load balancing with multiple backend instances
-- Redis caching layer
-- CDN for static assets
-- Database read replicas
-- Horizontal scaling on Render/Railway
+- Name
+- Profile Picture
+- Bio
+- Cuisine Type
 
 ---
 
-## Security Best Practices
+### Menu Management
+Chef can:
 
-✅ Implemented
-- JWT-based authentication
-- Password hashing with bcrypt
-- Environment variable management
-- CORS configuration
-- HTTP-only cookies (for refresh tokens)
-
-🔄 Recommended for Production
-- Rate limiting
-- SQL injection prevention (via ORM)
-- XSS protection
-- CSRF tokens
-- API key rotation
-- Audit logging
-- Data encryption at rest
-- SSL/TLS certificates
+- Add Dish
+- Edit Dish
+- Delete Dish
+- Mark Dish Available/Unavailable
 
 ---
 
-## Monitoring & Logging (Future Enhancement)
+### Order Management
+Chef can:
 
-- **Error Tracking**: Sentry
-- **Performance Monitoring**: New Relic or DataDog
-- **Log Aggregation**: LogRocket or Papertrail
-- **Uptime Monitoring**: UptimeRobot
-
----
-
-## Backup & Disaster Recovery
-
-- **Database Backups**: Supabase automated daily backups
-- **Code Backups**: GitHub repository
-- **Infrastructure as Code**: Docker configurations (future)
+- View Incoming Orders
+- Accept Orders
+- Reject Orders
+- Complete Orders
 
 ---
 
-## License & Attribution
-This tech stack is optimized for MVP development and can be adjusted based on team preferences and specific requirements.
+### Earnings Dashboard
+Chef can view:
+
+- Total Orders
+- Revenue
+- Completed Orders
+
+---
+
+## Admin Dashboard
+
+### Dashboard Overview
+Display:
+
+- Total Customers
+- Total Chefs
+- Total Orders
+- Revenue
+
+---
+
+### Customer Management
+Admin can:
+
+- View Customers
+- View Activity
+
+---
+
+### Chef Management
+Admin can:
+
+- View Chefs
+- View Performance
+- Disable Accounts
+
+---
+
+### Order Analytics
+Admin can view:
+
+- Orders Per Day
+- Orders Per Chef
+- Popular Dishes
+- Platform Statistics
+
+---
+
+# Database Design
+
+## Users
+Fields:
+
+- id
+- full_name
+- email
+- phone
+- role
+- created_at
+
+Roles:
+
+- customer
+- chef
+- admin
+
+---
+
+## Chef Profiles
+Fields:
+
+- id
+- user_id
+- bio
+- cuisine_type
+- profile_image
+- is_active
+
+Relationship:
+
+User → Chef Profile
+
+One-to-One
+
+---
+
+## Dishes
+Fields:
+
+- id
+- chef_id
+- name
+- description
+- price
+- image_url
+- availability
+
+Relationship:
+
+Chef → Dishes
+
+One-to-Many
+
+One Chef can have many Dishes.
+
+---
+
+## Orders
+Fields:
+
+- id
+- customer_id
+- chef_id
+- total_amount
+- status
+- created_at
+
+Relationship:
+
+Customer → Orders
+
+One-to-Many
+
+Chef → Orders
+
+One-to-Many
+
+---
+
+## Order Items
+Fields:
+
+- id
+- order_id
+- dish_id
+- quantity
+- price
+
+Relationship:
+
+Order → Order Items
+
+One-to-Many
+
+---
+
+# Final Technology Stack
+
+## Mobile Application
+Framework:
+
+- React Native
+
+Tooling:
+
+- Expo
+
+Navigation:
+
+- Expo Router
+
+State Management:
+
+- Zustand
+
+Purpose:
+
+- Customer Portal
+- Chef Portal
+
+Single Application
+
+Role-based UI
+
+---
+
+## Admin Dashboard
+Framework:
+
+- Next.js
+
+Purpose:
+
+- Analytics
+- Customer Management
+- Chef Management
+- Order Monitoring
+
+Charts:
+
+- Recharts
+
+Deployment:
+
+- Vercel
+
+---
+
+## Backend Services
+Platform:
+
+- Supabase
+
+Services Used:
+
+### Authentication
+Supabase Auth
+
+Handles:
+
+- Registration
+- Login
+- Sessions
+
+---
+
+### Database
+PostgreSQL (Supabase)
+
+Stores:
+
+- Users
+- Chefs
+- Dishes
+- Orders
+- Order Items
+
+---
+
+### File Storage
+Supabase Storage
+
+Stores:
+
+- Chef Images
+- Dish Images
+
+---
+
+## Database Engine
+PostgreSQL
+
+Reason:
+
+- Relational Data
+- Strong Relationships
+- Industry Standard
+
+---
+
+## Deployment
+
+### Mobile App
+Expo
+
+### Admin Dashboard
+Vercel
+
+### Backend Services
+Supabase
+
+---
+
+# Features Removed From MVP
+The following are intentionally excluded:
+
+- Real Payment Gateway
+- Live Delivery Tracking
+- Maps Integration
+- Real-time Chat
+- Push Notifications
+- AI Recommendations
+- Corporate Partnerships
+- Employee Discounts
+- Loyalty Programs
+- Subscription Plans
+
+---
+
+# Success Criteria
+Project is successful when:
+
+1. Customer can register and login.
+2. Chef can register and manage dishes.
+3. Customer can place orders.
+4. Chef can manage orders.
+5. Admin dashboard displays analytics.
+6. Data persists in PostgreSQL.
+7. Images upload successfully.
+8. Application is deployed online.
+9. End-to-end flow works without manual intervention.
+
+---
+
+# Resume Description
+Built a full-stack food marketplace platform connecting customers and home chefs using React Native, Next.js, Supabase, PostgreSQL, authentication, role-based access control, analytics dashboards, and cloud storage.
