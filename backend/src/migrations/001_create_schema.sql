@@ -1,3 +1,8 @@
+-- ============================================================
+-- NUDGIFY MVP - Full Database Schema
+-- Run this in: Supabase Dashboard > SQL Editor > New Query
+-- ============================================================
+
 -- Create Users Table
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
@@ -16,7 +21,8 @@ CREATE TABLE IF NOT EXISTS chef_profile (
   user_id INTEGER NOT NULL UNIQUE,
   bio TEXT,
   cuisine_type VARCHAR(100),
-  profile_image VARCHAR(255),
+  profile_image VARCHAR(500),
+  is_active BOOLEAN DEFAULT true,
   rating FLOAT DEFAULT 5.0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -32,7 +38,7 @@ CREATE TABLE IF NOT EXISTS dishes (
   price DECIMAL(10, 2) NOT NULL,
   category VARCHAR(100),
   availability BOOLEAN DEFAULT true,
-  image_url VARCHAR(255),
+  image_url VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (chef_id) REFERENCES users(id) ON DELETE CASCADE
@@ -44,7 +50,7 @@ CREATE TABLE IF NOT EXISTS orders (
   customer_id INTEGER NOT NULL,
   chef_id INTEGER NOT NULL,
   total_amount DECIMAL(10, 2) NOT NULL,
-  status VARCHAR(50) DEFAULT 'pending',
+  status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending','accepted','rejected','completed')),
   delivery_address TEXT,
   special_instructions TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -66,11 +72,14 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 -- Create Indexes
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_chef_profile_user_id ON chef_profile(user_id);
-CREATE INDEX idx_dishes_chef_id ON dishes(chef_id);
-CREATE INDEX idx_orders_customer_id ON orders(customer_id);
-CREATE INDEX idx_orders_chef_id ON orders(chef_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_chef_profile_user_id ON chef_profile(user_id);
+CREATE INDEX IF NOT EXISTS idx_chef_profile_active ON chef_profile(is_active);
+CREATE INDEX IF NOT EXISTS idx_dishes_chef_id ON dishes(chef_id);
+CREATE INDEX IF NOT EXISTS idx_dishes_availability ON dishes(availability);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_chef_id ON orders(chef_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);

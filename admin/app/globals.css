@@ -5,35 +5,58 @@
 * {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  :root {
+    --brand-primary: #ff6b35; /* Vibrant Orange */
+    --brand-secondary: #f7b32b; /* Amber */
+    --brand-dark: #1e1e24; /* Soft Black */
+    --brand-light: #f8f9fa; /* Off-white */
+    
+    --bg-app: #f4f5f7;
+    --bg-glass: rgba(255, 255, 255, 0.7);
+    --border-glass: rgba(255, 255, 255, 0.4);
+    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  }
+
+  body {
+    background-color: var(--bg-app);
+    color: var(--brand-dark);
+    font-family: 'Outfit', sans-serif;
+  }
 }
 
 @layer components {
+  /* Premium Glassmorphism Card */
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] rounded-2xl;
+  }
+
+  /* Vibrant Button */
   .btn-primary {
-    @apply bg-primary text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition font-medium;
+    @apply px-6 py-2 bg-gradient-to-r from-[#ff6b35] to-[#f7b32b] text-white font-medium rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95;
   }
 
-  .btn-secondary {
-    @apply bg-gray-200 text-dark px-4 py-2 rounded-lg hover:bg-gray-300 transition font-medium;
+  /* Status Badges */
+  .badge {
+    @apply px-3 py-1 text-xs font-semibold rounded-full uppercase tracking-wider;
   }
-
-  .card {
-    @apply bg-white rounded-lg shadow-md p-6 border border-gray-100;
+  .badge-success {
+    @apply bg-green-100 text-green-700;
   }
-
-  .input {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary;
+  .badge-warning {
+    @apply bg-amber-100 text-amber-700;
   }
-
-  .table-cell {
-    @apply px-6 py-4 border-b border-gray-200;
+  .badge-danger {
+    @apply bg-red-100 text-red-700;
+  }
+  .badge-neutral {
+    @apply bg-gray-100 text-gray-700;
+  }
+  
+  /* Inputs */
+  .input-premium {
+    @apply w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ff6b35] focus:border-transparent outline-none transition-all duration-300;
   }
 }

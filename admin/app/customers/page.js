@@ -5,14 +5,11 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Table from '@/components/Table';
 import apiClient from '@/lib/api';
-import { Search } from 'lucide-react';
 
 export default function CustomersPage() {
   const router = useRouter();
   const [customers, setCustomers] = useState([]);
-  const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -20,24 +17,16 @@ export default function CustomersPage() {
       router.push('/login');
       return;
     }
-
     fetchCustomers();
   }, []);
 
-  useEffect(() => {
-    const filtered = customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.email.toLowerCase().includes(search.toLowerCase())
-    );
-    setFilteredCustomers(filtered);
-  }, [search, customers]);
-
   const fetchCustomers = async () => {
     try {
-      const response = await apiClient.get('/api/admin/users');
-      const customersData = response.data.data.filter((u) => u.role === 'customer');
-      setCustomers(customersData);
+      setLoading(true);
+      const res = await apiClient.get('/api/admin/users');
+      // Filter for customers only
+      const customerData = res.data.data.filter(u => u.role === 'customer');
+      setCustomers(customerData);
     } catch (error) {
       console.error('Error fetching customers:', error);
     } finally {
@@ -45,48 +34,69 @@ export default function CustomersPage() {
     }
   };
 
+  const handleToggleStatus = async (userId, currentStatus) => {
+    // Currently, backend only has 'disableUser'. Assuming active status toggle isn't fully implemented in MVP,
+    // but we can call disable. We'll simulate a toggle locally for UI purposes if the backend is read-only for enable.
+    try {
+      if (currentStatus) {
+        await apiClient.put(`/api/admin/users/${userId}/disable`);
+        setCustomers(customers.map(c => c.id === userId ? { ...c, active: false } : c));
+      }
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      alert('Failed to update status');
+    }
+  };
+
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'Name' },
-    { key: 'email', label: 'Email' },
-    {
+    { label: 'Name', key: 'name', render: (val) => <span className="font-semibold">{val}</span> },
+    { label: 'Email', key: 'email' },
+    { 
+      label: 'Joined Date', 
       key: 'created_at',
-      label: 'Joined',
-      render: (val) => new Date(val).toLocaleDateString(),
+      render: (val) => new Date(val).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     },
     {
-      key: 'role',
-      label: 'Role',
+      label: 'Status',
+      key: 'active',
       render: (val) => (
-        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-          {val}
+        <span className={`badge ${val ? 'badge-success' : 'badge-danger'}`}>
+          {val ? 'Active' : 'Disabled'}
         </span>
+      ),
+    },
+    {
+      label: 'Actions',
+      key: 'id',
+      render: (id, row) => (
+        <button
+          onClick={() => handleToggleStatus(id, row.active)}
+          disabled={!row.active}
+          className={`text-sm px-3 py-1 rounded-lg font-medium transition ${
+            row.active 
+              ? 'bg-red-50 text-red-600 hover:bg-red-100' 
+              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          Disable
+        </button>
       ),
     },
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-app">
       <Sidebar />
-
       <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          <h1 className="text-3xl font-bold text-dark mb-8">Customers</h1>
-
-          {/* Search */}
-          <div className="mb-6 relative">
-            <Search className="absolute left-4 top-3 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input pl-12"
-            />
+        <div className="p-8 max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-dark tracking-tight">Customers</h1>
+              <p className="text-gray-500 mt-1">Manage all registered customers</p>
+            </div>
           </div>
 
-          {/* Table */}
-          <Table columns={columns} data={filteredCustomers} loading={loading} />
+          <Table columns={columns} data={customers} loading={loading} />
         </div>
       </main>
     </div>

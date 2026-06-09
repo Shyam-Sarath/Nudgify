@@ -9,17 +9,13 @@ export default function StatCard({ title, value, icon: Icon, color = 'blue' }) {
   };
 
   return (
-    <div className="card">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-dark mt-2">{value}</p>
-        </div>
-        {Icon && (
-          <div className={`p-4 rounded-lg ${colorClasses[color]}`}>
-            <Icon size={32} />
-          </div>
-        )}
+    <div className="glass-panel p-6 flex items-center hover:-translate-y-1 transition-transform duration-300">
+      <div className={`p-4 rounded-xl ${colorClasses[color]}`}>
+        <Icon size={28} />
+      </div>
+      <div className="ml-5">
+        <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">{title}</p>
+        <p className="text-2xl font-bold text-dark mt-1">{value}</p>
       </div>
     </div>
   );

@@ -52,12 +52,12 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-app">
       <Sidebar />
 
       <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          <h1 className="text-3xl font-bold text-dark mb-8">Dashboard Overview</h1>
+        <div className="p-8 max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold text-dark tracking-tight mb-8">Dashboard Overview</h1>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -88,7 +88,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Analytics Chart */}
-          <div className="card">
+          <div className="glass-panel p-6">
             <h2 className="text-xl font-bold text-dark mb-6">Daily Analytics (Last 30 Days)</h2>
             {analytics.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>

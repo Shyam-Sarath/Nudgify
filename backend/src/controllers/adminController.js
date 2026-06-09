@@ -1,202 +1,178 @@
-const pool = require('../config/database');
+const supabase = require('../config/database');
 const { AppError } = require('../middleware/errorHandler');
 
 // Get Dashboard Overview
 const getDashboard = async (req, res) => {
-  try {
-    // Total customers
-    const customers = await pool.query(
-      'SELECT COUNT(*) FROM users WHERE role = $1',
-      ['customer']
-    );
+  const [
+    { count: totalCustomers },
+    { count: totalChefs },
+    { count: totalOrders },
+    { data: revenueData },
+  ] = await Promise.all([
+    supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'customer'),
+    supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'chef'),
+    supabase.from('orders').select('*', { count: 'exact', head: true }),
+    supabase.from('orders').select('total_amount').eq('status', 'completed'),
+  ]);
 
-    // Total chefs
-    const chefs = await pool.query(
-      'SELECT COUNT(*) FROM users WHERE role = $1',
-      ['chef']
-    );
+  const totalRevenue = (revenueData || []).reduce(
+    (sum, o) => sum + parseFloat(o.total_amount || 0),
+    0
+  );
 
-    // Total orders
-    const orders = await pool.query('SELECT COUNT(*) FROM orders');
-
-    // Total revenue
-    const revenue = await pool.query(
-      'SELECT SUM(total_amount) FROM orders WHERE status = $1',
-      ['completed']
-    );
-
-    res.status(200).json({
-      success: true,
-      data: {
-        totalCustomers: parseInt(customers.rows[0].count),
-        totalChefs: parseInt(chefs.rows[0].count),
-        totalOrders: parseInt(orders.rows[0].count),
-        totalRevenue: revenue.rows[0].sum || 0
-      }
-    });
-  } catch (error) {
-    throw error;
-  }
+  res.status(200).json({
+    success: true,
+    data: {
+      totalCustomers: totalCustomers || 0,
+      totalChefs: totalChefs || 0,
+      totalOrders: totalOrders || 0,
+      totalRevenue,
+    },
+  });
 };
 
 // Get All Users
 const getAllUsers = async (req, res) => {
-  try {
-    const result = await pool.query('SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC');
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name, email, role, active, created_at')
+    .order('created_at', { ascending: false });
 
-    res.status(200).json({
-      success: true,
-      data: result.rows
-    });
-  } catch (error) {
-    throw error;
-  }
+  if (error) throw new AppError(error.message, 500);
+
+  res.status(200).json({ success: true, data });
 };
 
 // Get User Detail
 const getUserDetail = async (req, res) => {
   const { userId } = req.params;
 
-  try {
-    const result = await pool.query(
-      'SELECT id, name, email, role, created_at FROM users WHERE id = $1',
-      [userId]
-    );
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name, email, role, active, created_at')
+    .eq('id', userId)
+    .single();
 
-    if (result.rows.length === 0) {
-      throw new AppError('User not found', 404);
-    }
+  if (error || !data) throw new AppError('User not found', 404);
 
-    res.status(200).json({
-      success: true,
-      data: result.rows[0]
-    });
-  } catch (error) {
-    throw error;
-  }
+  res.status(200).json({ success: true, data });
 };
 
 // Disable User
 const disableUser = async (req, res) => {
   const { userId } = req.params;
 
-  try {
-    const result = await pool.query(
-      'UPDATE users SET active = false WHERE id = $1 RETURNING id, name, email, active',
-      [userId]
-    );
+  const { data, error } = await supabase
+    .from('users')
+    .update({ active: false })
+    .eq('id', userId)
+    .select('id, name, email, active')
+    .single();
 
-    if (result.rows.length === 0) {
-      throw new AppError('User not found', 404);
-    }
+  if (error || !data) throw new AppError('User not found', 404);
 
-    res.status(200).json({
-      success: true,
-      message: 'User disabled',
-      data: result.rows[0]
-    });
-  } catch (error) {
-    throw error;
-  }
+  res.status(200).json({ success: true, message: 'User disabled', data });
 };
 
 // Get All Chefs
 const getAllChefs = async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT cp.*, u.name, u.email 
-       FROM chef_profile cp 
-       JOIN users u ON cp.user_id = u.id 
-       ORDER BY cp.created_at DESC`
-    );
+  const { data, error } = await supabase
+    .from('chef_profile')
+    .select('*, users(name, email)')
+    .order('created_at', { ascending: false });
 
-    res.status(200).json({
-      success: true,
-      data: result.rows
-    });
-  } catch (error) {
-    throw error;
-  }
+  if (error) throw new AppError(error.message, 500);
+
+  const chefs = data.map((c) => ({
+    ...c,
+    name: c.users?.name,
+    email: c.users?.email,
+    users: undefined,
+  }));
+
+  res.status(200).json({ success: true, data: chefs });
 };
 
 // Get Chef Detail
 const getChefDetail = async (req, res) => {
   const { chefId } = req.params;
 
-  try {
-    const chefResult = await pool.query(
-      `SELECT cp.*, u.name, u.email 
-       FROM chef_profile cp 
-       JOIN users u ON cp.user_id = u.id 
-       WHERE cp.user_id = $1`,
-      [chefId]
-    );
+  const { data: chef, error } = await supabase
+    .from('chef_profile')
+    .select('*, users(name, email)')
+    .eq('user_id', chefId)
+    .single();
 
-    if (chefResult.rows.length === 0) {
-      throw new AppError('Chef not found', 404);
-    }
+  if (error || !chef) throw new AppError('Chef not found', 404);
 
-    const ordersResult = await pool.query(
-      'SELECT COUNT(*) FROM orders WHERE chef_id = $1',
-      [chefId]
-    );
+  const [{ count: totalOrders }, { data: revenueData }] = await Promise.all([
+    supabase.from('orders').select('*', { count: 'exact', head: true }).eq('chef_id', chefId),
+    supabase.from('orders').select('total_amount').eq('chef_id', chefId).eq('status', 'completed'),
+  ]);
 
-    const revenueResult = await pool.query(
-      'SELECT SUM(total_amount) FROM orders WHERE chef_id = $1 AND status = $2',
-      [chefId, 'completed']
-    );
+  const totalRevenue = (revenueData || []).reduce(
+    (sum, o) => sum + parseFloat(o.total_amount || 0),
+    0
+  );
 
-    res.status(200).json({
-      success: true,
-      data: {
-        ...chefResult.rows[0],
-        totalOrders: parseInt(ordersResult.rows[0].count),
-        totalRevenue: revenueResult.rows[0].sum || 0
-      }
-    });
-  } catch (error) {
-    throw error;
-  }
+  res.status(200).json({
+    success: true,
+    data: {
+      ...chef,
+      name: chef.users?.name,
+      email: chef.users?.email,
+      users: undefined,
+      totalOrders: totalOrders || 0,
+      totalRevenue,
+    },
+  });
 };
 
-// Get Orders
+// Get All Orders
 const getOrders = async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT o.*, u.name as customer_name, c.name as chef_name 
-       FROM orders o 
-       JOIN users u ON o.customer_id = u.id 
-       JOIN users c ON o.chef_id = c.id 
-       ORDER BY o.created_at DESC`
-    );
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, customer:users!customer_id(name), chef:users!chef_id(name)')
+    .order('created_at', { ascending: false });
 
-    res.status(200).json({
-      success: true,
-      data: result.rows
-    });
-  } catch (error) {
-    throw error;
-  }
+  if (error) throw new AppError(error.message, 500);
+
+  const orders = data.map((o) => ({
+    ...o,
+    customer_name: o.customer?.name,
+    chef_name: o.chef?.name,
+    customer: undefined,
+    chef: undefined,
+  }));
+
+  res.status(200).json({ success: true, data: orders });
 };
 
-// Get Daily Analytics
+// Get Daily Analytics (last 30 days)
 const getDailyAnalytics = async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT DATE(created_at) as date, COUNT(*) as orders, SUM(total_amount) as revenue 
-       FROM orders 
-       WHERE created_at >= NOW() - INTERVAL '30 days' 
-       GROUP BY DATE(created_at) 
-       ORDER BY date DESC`
-    );
+  // Fetch orders from last 30 days
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    res.status(200).json({
-      success: true,
-      data: result.rows
-    });
-  } catch (error) {
-    throw error;
-  }
+  const { data, error } = await supabase
+    .from('orders')
+    .select('created_at, total_amount')
+    .gte('created_at', thirtyDaysAgo)
+    .order('created_at', { ascending: true });
+
+  if (error) throw new AppError(error.message, 500);
+
+  // Group by date in JS
+  const grouped = {};
+  (data || []).forEach((order) => {
+    const date = order.created_at.substring(0, 10); // YYYY-MM-DD
+    if (!grouped[date]) grouped[date] = { date, orders: 0, revenue: 0 };
+    grouped[date].orders += 1;
+    grouped[date].revenue += parseFloat(order.total_amount || 0);
+  });
+
+  const analytics = Object.values(grouped).sort((a, b) => b.date.localeCompare(a.date));
+
+  res.status(200).json({ success: true, data: analytics });
 };
 
 module.exports = {
@@ -207,5 +183,5 @@ module.exports = {
   getAllChefs,
   getChefDetail,
   getOrders,
-  getDailyAnalytics
+  getDailyAnalytics,
 };

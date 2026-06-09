@@ -5,14 +5,11 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Table from '@/components/Table';
 import apiClient from '@/lib/api';
-import { Search, AlertCircle } from 'lucide-react';
 
 export default function ChefsPage() {
   const router = useRouter();
   const [chefs, setChefs] = useState([]);
-  const [filteredChefs, setFilteredChefs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -20,23 +17,14 @@ export default function ChefsPage() {
       router.push('/login');
       return;
     }
-
     fetchChefs();
   }, []);
 
-  useEffect(() => {
-    const filtered = chefs.filter(
-      (c) =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.email.toLowerCase().includes(search.toLowerCase())
-    );
-    setFilteredChefs(filtered);
-  }, [search, chefs]);
-
   const fetchChefs = async () => {
     try {
-      const response = await apiClient.get('/api/admin/chefs');
-      setChefs(response.data.data);
+      setLoading(true);
+      const res = await apiClient.get('/api/admin/chefs');
+      setChefs(res.data.data || []);
     } catch (error) {
       console.error('Error fetching chefs:', error);
     } finally {
@@ -44,63 +32,65 @@ export default function ChefsPage() {
     }
   };
 
-  const handleDisableChef = async (userId) => {
-    if (!confirm('Are you sure you want to disable this chef?')) return;
-
-    try {
-      await apiClient.put(`/api/admin/users/${userId}/disable`);
-      fetchChefs();
-    } catch (error) {
-      alert('Error disabling chef');
-    }
-  };
-
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'Chef Name' },
-    { key: 'email', label: 'Email' },
-    { key: 'cuisine_type', label: 'Cuisine' },
-    {
+    { 
+      label: 'Chef', 
+      key: 'name', 
+      render: (_, row) => (
+        <div className="flex items-center space-x-3">
+          <img 
+            src={row.profile_image || 'https://placehold.co/100'} 
+            alt={row.name} 
+            className="w-10 h-10 rounded-full object-cover border border-gray-200"
+          />
+          <div>
+            <p className="font-semibold">{row.name}</p>
+            <p className="text-xs text-gray-500">{row.email}</p>
+          </div>
+        </div>
+      )
+    },
+    { label: 'Cuisine', key: 'cuisine_type' },
+    { 
+      label: 'Rating', 
       key: 'rating',
-      label: 'Rating',
-      render: (val) => `${val || 0}/5`,
+      render: (val) => (
+        <span className="flex items-center space-x-1 text-amber-500 font-medium">
+          <span>★</span>
+          <span>{val ? val.toFixed(1) : 'N/A'}</span>
+        </span>
+      )
+    },
+    { 
+      label: 'Joined Date', 
+      key: 'created_at',
+      render: (val) => new Date(val).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     },
     {
-      key: 'user_id',
-      label: 'Action',
+      label: 'Status',
+      key: 'is_active',
       render: (val) => (
-        <button
-          onClick={() => handleDisableChef(val)}
-          className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm hover:bg-red-200 transition"
-        >
-          Disable
-        </button>
+        <span className={`badge ${val ? 'badge-success' : 'badge-danger'}`}>
+          {val ? 'Active' : 'Inactive'}
+        </span>
       ),
     },
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-app">
       <Sidebar />
-
       <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          <h1 className="text-3xl font-bold text-dark mb-8">Chefs Management</h1>
-
-          {/* Search */}
-          <div className="mb-6 relative">
-            <Search className="absolute left-4 top-3 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input pl-12"
-            />
+        <div className="p-8 max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-dark tracking-tight">Chefs Directory</h1>
+              <p className="text-gray-500 mt-1">Manage approved home chefs</p>
+            </div>
+            <button className="btn-primary">Add New Chef</button>
           </div>
 
-          {/* Table */}
-          <Table columns={columns} data={filteredChefs} loading={loading} />
+          <Table columns={columns} data={chefs} loading={loading} />
         </div>
       </main>
     </div>

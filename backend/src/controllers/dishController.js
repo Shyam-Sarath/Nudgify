@@ -1,78 +1,55 @@
-const pool = require('../config/database');
+const supabase = require('../config/database');
 const { AppError } = require('../middleware/errorHandler');
 
-// Get All Dishes
+// Get All Dishes (public)
 const getAllDishes = async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT d.*, u.name as chef_name 
-       FROM dishes d 
-       JOIN users u ON d.chef_id = u.id 
-       WHERE d.availability = true 
-       ORDER BY d.created_at DESC`
-    );
+  const { data, error } = await supabase
+    .from('dishes')
+    .select('*, users!chef_id(name)')
+    .eq('availability', true)
+    .order('created_at', { ascending: false });
 
-    res.status(200).json({
-      success: true,
-      data: result.rows
-    });
-  } catch (error) {
-    throw error;
-  }
+  if (error) throw new AppError(error.message, 500);
+
+  const dishes = data.map((d) => ({ ...d, chef_name: d.users?.name, users: undefined }));
+
+  res.status(200).json({ success: true, data: dishes });
 };
 
 // Get Dish By ID
 const getDishById = async (req, res) => {
   const { id } = req.params;
 
-  try {
-    const result = await pool.query(
-      `SELECT d.*, u.name as chef_name 
-       FROM dishes d 
-       JOIN users u ON d.chef_id = u.id 
-       WHERE d.id = $1`,
-      [id]
-    );
+  const { data, error } = await supabase
+    .from('dishes')
+    .select('*, users!chef_id(name)')
+    .eq('id', id)
+    .single();
 
-    if (result.rows.length === 0) {
-      throw new AppError('Dish not found', 404);
-    }
+  if (error || !data) throw new AppError('Dish not found', 404);
 
-    res.status(200).json({
-      success: true,
-      data: result.rows[0]
-    });
-  } catch (error) {
-    throw error;
-  }
+  res.status(200).json({
+    success: true,
+    data: { ...data, chef_name: data.users?.name, users: undefined },
+  });
 };
 
 // Search Dishes
 const searchDishes = async (req, res) => {
   const { query } = req.params;
 
-  try {
-    const result = await pool.query(
-      `SELECT d.*, u.name as chef_name 
-       FROM dishes d 
-       JOIN users u ON d.chef_id = u.id 
-       WHERE (d.name ILIKE $1 OR d.description ILIKE $1 OR d.category ILIKE $1) 
-       AND d.availability = true 
-       ORDER BY d.created_at DESC`,
-      [`%${query}%`]
-    );
+  const { data, error } = await supabase
+    .from('dishes')
+    .select('*, users!chef_id(name)')
+    .eq('availability', true)
+    .or(`name.ilike.%${query}%,description.ilike.%${query}%,category.ilike.%${query}%`)
+    .order('created_at', { ascending: false });
 
-    res.status(200).json({
-      success: true,
-      data: result.rows
-    });
-  } catch (error) {
-    throw error;
-  }
+  if (error) throw new AppError(error.message, 500);
+
+  const dishes = data.map((d) => ({ ...d, chef_name: d.users?.name, users: undefined }));
+
+  res.status(200).json({ success: true, data: dishes });
 };
 
-module.exports = {
-  getAllDishes,
-  getDishById,
-  searchDishes
-};
+module.exports = { getAllDishes, getDishById, searchDishes };

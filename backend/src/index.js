@@ -27,6 +27,11 @@ app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Root Endpoint
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'Welcome to the Nudgify API', version: '1.0.0' });
+});
+
 // Health Check Endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date() });

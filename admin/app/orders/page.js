@@ -5,15 +5,11 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Table from '@/components/Table';
 import apiClient from '@/lib/api';
-import { Search, Filter } from 'lucide-react';
 
 export default function OrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState([]);
-  const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -21,32 +17,14 @@ export default function OrdersPage() {
       router.push('/login');
       return;
     }
-
     fetchOrders();
   }, []);
 
-  useEffect(() => {
-    let filtered = orders;
-
-    if (search) {
-      filtered = filtered.filter(
-        (o) =>
-          o.id.toString().includes(search) ||
-          o.customer_name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    if (statusFilter) {
-      filtered = filtered.filter((o) => o.status === statusFilter);
-    }
-
-    setFilteredOrders(filtered);
-  }, [search, statusFilter, orders]);
-
   const fetchOrders = async () => {
     try {
-      const response = await apiClient.get('/api/admin/orders');
-      setOrders(response.data.data);
+      setLoading(true);
+      const res = await apiClient.get('/api/admin/orders');
+      setOrders(res.data.data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -54,77 +32,58 @@ export default function OrdersPage() {
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      accepted: 'bg-blue-100 text-blue-800',
-      rejected: 'bg-red-100 text-red-800',
-      completed: 'bg-green-100 text-green-800',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'completed': return 'badge-success';
+      case 'pending': return 'badge-warning';
+      case 'rejected': return 'badge-danger';
+      case 'accepted': return 'bg-blue-100 text-blue-700'; // custom one for accepted
+      default: return 'badge-neutral';
+    }
   };
 
   const columns = [
-    { key: 'id', label: 'Order ID' },
-    { key: 'customer_name', label: 'Customer' },
-    { key: 'chef_name', label: 'Chef' },
-    {
+    { 
+      label: 'Order ID', 
+      key: 'id',
+      render: (val) => <span className="text-gray-500 font-mono">#{String(val).padStart(5, '0')}</span>
+    },
+    { label: 'Customer', key: 'customer_name', render: (val) => <span className="font-medium">{val || 'Unknown'}</span> },
+    { label: 'Chef', key: 'chef_name', render: (val) => <span className="font-medium text-gray-600">{val || 'Unknown'}</span> },
+    { 
+      label: 'Amount', 
       key: 'total_amount',
-      label: 'Amount',
-      render: (val) => `$${val.toFixed(2)}`,
+      render: (val) => <span className="font-semibold text-dark">${parseFloat(val).toFixed(2)}</span>
     },
     {
-      key: 'status',
       label: 'Status',
+      key: 'status',
       render: (val) => (
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(val)}`}>
-          {val.charAt(0).toUpperCase() + val.slice(1)}
+        <span className={`badge ${getStatusBadgeClass(val)}`}>
+          {val}
         </span>
       ),
     },
-    {
+    { 
+      label: 'Date', 
       key: 'created_at',
-      label: 'Date',
-      render: (val) => new Date(val).toLocaleDateString(),
+      render: (val) => new Date(val).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
     },
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-app">
       <Sidebar />
-
       <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          <h1 className="text-3xl font-bold text-dark mb-8">Orders Management</h1>
-
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="relative">
-              <Search className="absolute left-4 top-3 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search by order ID or customer..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input pl-12"
-              />
+        <div className="p-8 max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-dark tracking-tight">Order Management</h1>
+              <p className="text-gray-500 mt-1">Track and manage all platform orders</p>
             </div>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="input"
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="accepted">Accepted</option>
-              <option value="rejected">Rejected</option>
-              <option value="completed">Completed</option>
-            </select>
           </div>
 
-          {/* Table */}
-          <Table columns={columns} data={filteredOrders} loading={loading} />
+          <Table columns={columns} data={orders} loading={loading} />
         </div>
       </main>
     </div>

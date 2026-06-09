@@ -1,24 +1,19 @@
-const pool = require('../config/database');
+const supabase = require('../config/database');
 const { AppError } = require('../middleware/errorHandler');
 
 // Get Customer Profile
 const getProfile = async (req, res) => {
   const customerId = req.user.id;
 
-  try {
-    const result = await pool.query('SELECT id, name, email, created_at FROM users WHERE id = $1', [customerId]);
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name, email, created_at')
+    .eq('id', customerId)
+    .single();
 
-    if (result.rows.length === 0) {
-      throw new AppError('Profile not found', 404);
-    }
+  if (error || !data) throw new AppError('Profile not found', 404);
 
-    res.status(200).json({
-      success: true,
-      data: result.rows[0]
-    });
-  } catch (error) {
-    throw error;
-  }
+  res.status(200).json({ success: true, data });
 };
 
 // Update Customer Profile
@@ -26,116 +21,83 @@ const updateProfile = async (req, res) => {
   const customerId = req.user.id;
   const { name } = req.body;
 
-  try {
-    const result = await pool.query(
-      'UPDATE users SET name = $1 WHERE id = $2 RETURNING id, name, email',
-      [name, customerId]
-    );
+  const { data, error } = await supabase
+    .from('users')
+    .update({ name })
+    .eq('id', customerId)
+    .select('id, name, email')
+    .single();
 
-    res.status(200).json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: result.rows[0]
-    });
-  } catch (error) {
-    throw error;
-  }
+  if (error) throw new AppError(error.message, 500);
+
+  res.status(200).json({ success: true, message: 'Profile updated successfully', data });
 };
 
-// Get All Chefs
+// Get All Active Chefs
 const getAllChefs = async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT cp.*, u.name, u.email 
-       FROM chef_profile cp 
-       JOIN users u ON cp.user_id = u.id 
-       ORDER BY cp.created_at DESC`
-    );
+  const { data, error } = await supabase
+    .from('chef_profile')
+    .select('*, users(name, email)')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
 
-    res.status(200).json({
-      success: true,
-      data: result.rows
-    });
-  } catch (error) {
-    throw error;
-  }
+  if (error) throw new AppError(error.message, 500);
+
+  res.status(200).json({ success: true, data });
 };
 
-// Get Chef Detail
+// Get Chef Detail with Dishes
 const getChefDetail = async (req, res) => {
   const { chefId } = req.params;
 
-  try {
-    const chef = await pool.query(
-      `SELECT cp.*, u.name, u.email 
-       FROM chef_profile cp 
-       JOIN users u ON cp.user_id = u.id 
-       WHERE cp.user_id = $1`,
-      [chefId]
-    );
+  const { data: chef, error: chefError } = await supabase
+    .from('chef_profile')
+    .select('*, users(name, email)')
+    .eq('user_id', chefId)
+    .single();
 
-    if (chef.rows.length === 0) {
-      throw new AppError('Chef not found', 404);
-    }
+  if (chefError || !chef) throw new AppError('Chef not found', 404);
 
-    const dishes = await pool.query('SELECT * FROM dishes WHERE chef_id = $1', [chefId]);
+  const { data: dishes } = await supabase
+    .from('dishes')
+    .select('*')
+    .eq('chef_id', chefId)
+    .eq('availability', true);
 
-    res.status(200).json({
-      success: true,
-      data: {
-        ...chef.rows[0],
-        dishes: dishes.rows
-      }
-    });
-  } catch (error) {
-    throw error;
-  }
+  res.status(200).json({ success: true, data: { ...chef, dishes: dishes || [] } });
 };
 
-// Get All Dishes
+// Get All Available Dishes
 const getAllDishes = async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT d.*, u.name as chef_name 
-       FROM dishes d 
-       JOIN users u ON d.chef_id = u.id 
-       WHERE d.availability = true 
-       ORDER BY d.created_at DESC`
-    );
+  const { data, error } = await supabase
+    .from('dishes')
+    .select('*, users!chef_id(name)')
+    .eq('availability', true)
+    .order('created_at', { ascending: false });
 
-    res.status(200).json({
-      success: true,
-      data: result.rows
-    });
-  } catch (error) {
-    throw error;
-  }
+  if (error) throw new AppError(error.message, 500);
+
+  const dishes = data.map((d) => ({ ...d, chef_name: d.users?.name, users: undefined }));
+
+  res.status(200).json({ success: true, data: dishes });
 };
 
 // Get Dish Detail
 const getDishDetail = async (req, res) => {
   const { dishId } = req.params;
 
-  try {
-    const result = await pool.query(
-      `SELECT d.*, u.name as chef_name, u.email as chef_email 
-       FROM dishes d 
-       JOIN users u ON d.chef_id = u.id 
-       WHERE d.id = $1`,
-      [dishId]
-    );
+  const { data, error } = await supabase
+    .from('dishes')
+    .select('*, users!chef_id(name, email)')
+    .eq('id', dishId)
+    .single();
 
-    if (result.rows.length === 0) {
-      throw new AppError('Dish not found', 404);
-    }
+  if (error || !data) throw new AppError('Dish not found', 404);
 
-    res.status(200).json({
-      success: true,
-      data: result.rows[0]
-    });
-  } catch (error) {
-    throw error;
-  }
+  res.status(200).json({
+    success: true,
+    data: { ...data, chef_name: data.users?.name, chef_email: data.users?.email, users: undefined },
+  });
 };
 
 module.exports = {
@@ -144,5 +106,5 @@ module.exports = {
   getAllChefs,
   getChefDetail,
   getAllDishes,
-  getDishDetail
+  getDishDetail,
 };
