@@ -7,24 +7,26 @@ async function runMigration() {
   const schemaPath = path.join(__dirname, '001_create_schema.sql');
   console.log(`Reading schema from: ${schemaPath}`);
   
-  // Try direct host first, or pooler if configured. Let's check environment
-  const directHost = 'db.ludedzyuwnsurxsmahli.supabase.co';
+  // Try pooler credentials configured in .env, falling back to direct host if needed
   const pool = new Pool({
-    user: 'postgres',
+    user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD,
-    host: directHost,
-    port: 5432,
-    database: 'postgres',
+    host: process.env.DB_HOST || 'db.ludedzyuwnsurxsmahli.supabase.co',
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
+    database: process.env.DB_NAME || 'postgres',
     ssl: {
       rejectUnauthorized: false
     }
   });
 
   try {
-    const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-    
-    console.log('Running schema migrations...');
-    await pool.query(schemaSql);
+    const migrations = ['001_create_schema.sql', '002_activity_logs.sql'];
+    for (const file of migrations) {
+      const filePath = path.join(__dirname, file);
+      console.log(`Running migration: ${file}...`);
+      const sql = fs.readFileSync(filePath, 'utf8');
+      await pool.query(sql);
+    }
     console.log('✅ Migrations completed successfully.');
   } catch (error) {
     console.error('❌ Migration failed:', error);

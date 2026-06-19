@@ -211,6 +211,123 @@ const getDashboard = async (req, res) => {
   });
 };
 
+// Upload Chef Profile Image
+const uploadProfileImage = async (req, res) => {
+  const chefId = req.user.id;
+  const { imageBase64 } = req.body;
+
+  if (!imageBase64) throw new AppError('Image data is required', 400);
+
+  let contentType = 'image/png';
+  let base64Data = imageBase64;
+
+  if (imageBase64.includes(';base64,')) {
+    const parts = imageBase64.split(';base64,');
+    contentType = parts[0].replace('data:', '');
+    base64Data = parts[1];
+  }
+
+  const buffer = Buffer.from(base64Data, 'base64');
+  const fileExtension = contentType.split('/')[1] || 'png';
+  const fileName = `chef_${chefId}_${Date.now()}.${fileExtension}`;
+
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET_CHEFS || 'chef-images';
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .upload(fileName, buffer, {
+      contentType,
+      upsert: true,
+    });
+
+  if (error) throw new AppError(`Storage upload failed: ${error.message}`, 500);
+
+  const { data: urlData } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(fileName);
+
+  const publicUrl = urlData?.publicUrl;
+
+  const { data: profile, error: dbError } = await supabase
+    .from('chef_profile')
+    .update({ profile_image: publicUrl })
+    .eq('user_id', chefId)
+    .select()
+    .single();
+
+  if (dbError) throw new AppError(dbError.message, 500);
+
+  res.status(200).json({
+    success: true,
+    message: 'Profile image uploaded successfully',
+    data: { profile_image: publicUrl, profile },
+  });
+};
+
+// Upload Dish Image
+const uploadDishImage = async (req, res) => {
+  const chefId = req.user.id;
+  const { dishId } = req.params;
+  const { imageBase64 } = req.body;
+
+  if (!imageBase64) throw new AppError('Image data is required', 400);
+
+  // Verify ownership of the dish
+  const { data: dish, error: findError } = await supabase
+    .from('dishes')
+    .select('id')
+    .eq('id', dishId)
+    .eq('chef_id', chefId)
+    .single();
+
+  if (findError || !dish) throw new AppError('Dish not found or unauthorized', 404);
+
+  let contentType = 'image/png';
+  let base64Data = imageBase64;
+
+  if (imageBase64.includes(';base64,')) {
+    const parts = imageBase64.split(';base64,');
+    contentType = parts[0].replace('data:', '');
+    base64Data = parts[1];
+  }
+
+  const buffer = Buffer.from(base64Data, 'base64');
+  const fileExtension = contentType.split('/')[1] || 'png';
+  const fileName = `dish_${dishId}_${Date.now()}.${fileExtension}`;
+
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET_DISHES || 'dish-images';
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .upload(fileName, buffer, {
+      contentType,
+      upsert: true,
+    });
+
+  if (error) throw new AppError(`Storage upload failed: ${error.message}`, 500);
+
+  const { data: urlData } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(fileName);
+
+  const publicUrl = urlData?.publicUrl;
+
+  const { data: updatedDish, error: dbError } = await supabase
+    .from('dishes')
+    .update({ image_url: publicUrl })
+    .eq('id', dishId)
+    .select()
+    .single();
+
+  if (dbError) throw new AppError(dbError.message, 500);
+
+  res.status(200).json({
+    success: true,
+    message: 'Dish image uploaded successfully',
+    data: { image_url: publicUrl, dish: updatedDish },
+  });
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -223,4 +340,6 @@ module.exports = {
   rejectOrder,
   completeOrder,
   getDashboard,
+  uploadProfileImage,
+  uploadDishImage,
 };

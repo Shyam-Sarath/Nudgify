@@ -4,12 +4,15 @@ import ChefDashboardScreen from '../screens/chef/ChefDashboardScreen';
 import ChefMenuScreen from '../screens/chef/ChefMenuScreen';
 import ChefOrdersScreen from '../screens/chef/ChefOrdersScreen';
 import ChefProfileScreen from '../screens/chef/ChefProfileScreen';
+import { useTheme } from '../theme';
 
 const Tab = createBottomTabNavigator();
 
 export default function ChefNavigator() {
+  const { colors } = useTheme();
+
   return (
-    <Tab.Navigator
+    <Tab.Navigator id="chef"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused }) => {
           let icon;
@@ -19,24 +22,24 @@ export default function ChefNavigator() {
           else if (route.name === 'Profile') icon = '👤';
           return icon;
         },
-        tabBarActiveTintColor: '#ff6b35',
-        tabBarInactiveTintColor: '#64748b',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.mutedText,
         tabBarStyle: {
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
-          backgroundColor: '#fff',
+          backgroundColor: colors.surface,
           borderTopWidth: 1,
-          borderTopColor: '#e2e8f0',
+          borderTopColor: colors.border,
         },
         headerStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: colors.surface,
           borderBottomWidth: 1,
-          borderBottomColor: '#e2e8f0',
+          borderBottomColor: colors.border,
         },
         headerTitleStyle: {
           fontWeight: 'bold',
-          color: '#1e1e24',
+          color: colors.text,
         },
       })}
     >

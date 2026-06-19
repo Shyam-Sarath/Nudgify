@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator, Alert, SafeAreaView, ScrollView } from 'react-native';
-import axios from 'axios';
+import { SafeAreaView, ScrollView, View, Text, Alert, StyleSheet, Pressable } from 'react-native';
+import apiClient from '../config/api';
 import { useAuthStore } from '../store/store';
-
-const API_URL = 'http://10.0.2.2:5000';
-const API_URL_WEB = 'http://localhost:5000';
+import { Input, Button } from '../components';
+import { useTheme } from '../theme';
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState('');
@@ -13,6 +12,7 @@ export default function RegisterScreen({ navigation }) {
   const [role, setRole] = useState('customer'); // default to customer
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
+  const { colors, spacing, radius, typography } = useTheme();
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
@@ -22,13 +22,7 @@ export default function RegisterScreen({ navigation }) {
 
     setLoading(true);
     try {
-      let response;
-      try {
-        response = await axios.post(`${API_URL}/api/auth/register`, { name, email, password, role });
-      } catch (err) {
-        response = await axios.post(`${API_URL_WEB}/api/auth/register`, { name, email, password, role });
-      }
-
+      const response = await apiClient.post('/api/auth/register', { name, email, password, role });
       const { user, token } = response.data.data;
       setAuth(user, token);
     } catch (error) {
@@ -41,76 +35,134 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.card}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingHorizontal: spacing.containerPaddingMobile },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.logo}>Nudgify</Text>
-            <Text style={styles.subtitle}>Create your marketplace account</Text>
+            <Text style={[styles.logo, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
+              Nudgify
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
+              Create your culinary account
+            </Text>
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Full Name</Text>
-            <TextInput
-              style={styles.input}
+            <Input
+              label="Full Name"
               value={name}
               onChangeText={setName}
-              placeholder="John Doe"
-              placeholderTextColor="#888"
+              placeholder="Julian V."
             />
-
-            <Text style={styles.label}>Email Address</Text>
-            <TextInput
-              style={styles.input}
+            <Input
+              label="Email Address"
               value={email}
               onChangeText={setEmail}
-              placeholder="john@example.com"
-              placeholderTextColor="#888"
-              autoCapitalize="none"
+              placeholder="julian@nudgify.test"
               keyboardType="email-address"
+              autoCapitalize="none"
             />
-
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
+            <Input
+              label="Password"
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
-              placeholderTextColor="#888"
               secureTextEntry
             />
 
-            <Text style={styles.label}>Register As</Text>
+            <Text
+              style={[
+                styles.label,
+                {
+                  color: colors.text,
+                  fontFamily: typography.fontFamilies.primaryMedium,
+                  fontSize: typography.sizes.sm,
+                  marginBottom: spacing.stackSm,
+                  marginTop: spacing.stackMd,
+                },
+              ]}
+            >
+              Register As
+            </Text>
+            
             <View style={styles.roleContainer}>
-              <TouchableOpacity
-                style={[styles.roleButton, role === 'customer' && styles.roleActive]}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.roleButton,
+                  {
+                    borderColor: role === 'customer' ? colors.primary : colors.border,
+                    backgroundColor: role === 'customer' ? colors.primaryContainer + '20' : colors.surfaceContainerLow,
+                    borderRadius: radius.default,
+                    opacity: pressed ? 0.9 : 1,
+                  },
+                ]}
                 onPress={() => setRole('customer')}
               >
-                <Text style={[styles.roleText, role === 'customer' && styles.roleTextActive]}>Customer</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.roleButton, role === 'chef' && styles.roleActive]}
+                <Text
+                  style={[
+                    styles.roleText,
+                    {
+                      color: role === 'customer' ? colors.primary : colors.mutedText,
+                      fontFamily: role === 'customer' ? typography.fontFamilies.primaryBold : typography.fontFamilies.primary,
+                    },
+                  ]}
+                >
+                  Customer
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.roleButton,
+                  {
+                    borderColor: role === 'chef' ? colors.primary : colors.border,
+                    backgroundColor: role === 'chef' ? colors.primaryContainer + '20' : colors.surfaceContainerLow,
+                    borderRadius: radius.default,
+                    opacity: pressed ? 0.9 : 1,
+                  },
+                ]}
                 onPress={() => setRole('chef')}
               >
-                <Text style={[styles.roleText, role === 'chef' && styles.roleTextActive]}>Home Chef</Text>
-              </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.roleText,
+                    {
+                      color: role === 'chef' ? colors.primary : colors.mutedText,
+                      fontFamily: role === 'chef' ? typography.fontFamilies.primaryBold : typography.fontFamilies.primary,
+                    },
+                  ]}
+                >
+                  Home Chef
+                </Text>
+              </Pressable>
             </View>
 
-            <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Sign Up</Text>
-              )}
-            </TouchableOpacity>
+            <Button
+              title="Sign Up"
+              onPress={handleRegister}
+              loading={loading}
+              disabled={loading}
+              style={{ marginTop: spacing.stackLg * 1.5 }}
+            />
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.link}>Log In</Text>
-            </TouchableOpacity>
+            <Text style={[styles.footerText, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
+              Already have an account?{' '}
+            </Text>
+            <Button
+              title="Log In"
+              variant="text"
+              onPress={() => navigation.navigate('Login')}
+              style={styles.loginButton}
+              textStyle={{ fontFamily: typography.fontFamilies.primaryBold }}
+            />
           </View>
         </View>
       </ScrollView>
@@ -121,123 +173,64 @@ export default function RegisterScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f5f7',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    paddingVertical: 40,
   },
-  card: {
+  content: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 30,
-    shadowColor: '#1f2687',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 8,
+    maxWidth: 440,
+    alignSelf: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: 36,
   },
   logo: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#ff6b35',
+    fontSize: 40,
+    fontWeight: '800',
     letterSpacing: -1,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 5,
+    marginTop: 8,
+    textAlign: 'center',
   },
   form: {
-    marginBottom: 20,
+    width: '100%',
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e1e24',
-    marginBottom: 8,
-    marginTop: 15,
-  },
-  input: {
-    width: '100%',
-    height: 52,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: '#1e1e24',
-    backgroundColor: '#f8fafc',
+    marginLeft: 4,
   },
   roleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: 5,
   },
   roleButton: {
     flex: 1,
-    height: 50,
+    height: 52,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 5,
-    backgroundColor: '#f8fafc',
-  },
-  roleActive: {
-    borderColor: '#ff6b35',
-    backgroundColor: '#fff8f5',
+    marginHorizontal: 6,
   },
   roleText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  roleTextActive: {
-    color: '#ff6b35',
-  },
-  button: {
-    width: '100%',
-    height: 52,
-    backgroundColor: '#ff6b35',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 30,
-    shadowColor: '#ff6b35',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 15,
+    marginTop: 24,
   },
   footerText: {
     fontSize: 14,
-    color: '#666',
   },
-  link: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ff6b35',
+  loginButton: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
 });

@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const path = require('path');
 
 // Middleware
 const { errorHandler } = require('./middleware/errorHandler');
@@ -58,10 +57,24 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Server Setup
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  const server = app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    // #region agent log
+    fetch('http://127.0.0.1:7325/ingest/ec45b7eb-196d-4933-afd3-e540532f9309',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'78bd0c'},body:JSON.stringify({sessionId:'78bd0c',runId:'initial',hypothesisId:'C',location:'backend/src/index.js:listen',message:'Backend server started',data:{port:PORT,corsOrigin:process.env.CORS_ORIGIN||'*'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  });
+
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Set PORT to a free port and try again.`);
+      process.exit(1);
+    }
+
+    throw error;
+  });
+}
 
 module.exports = app;

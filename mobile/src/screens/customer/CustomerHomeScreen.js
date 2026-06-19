@@ -1,70 +1,61 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, TextInput, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
-import axios from 'axios';
+import { StyleSheet, Text, View, FlatList, ScrollView, SafeAreaView, Pressable, Alert } from 'react-native';
+import apiClient from '../../config/api';
 import { useDataStore, useCartStore, useAuthStore } from '../../store/store';
+import { useTheme } from '../../theme';
+import { SearchBar, ChefCard, DishCard, Badge, Skeleton, EmptyState } from '../../components';
 
-const API_URL = 'http://10.0.2.2:5000';
-const API_URL_WEB = 'http://localhost:5000';
-
-export default function CustomerHomeScreen() {
+export default function CustomerHomeScreen({ navigation }) {
   const { token } = useAuthStore();
+  const { colors, spacing, radius, typography, icons } = useTheme();
   const { chefs, setChefs } = useDataStore();
   const { addToCart, cart } = useCartStore();
+
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedChef, setSelectedChef] = useState(null);
-  const [chefDishes, setChefDishes] = useState([]);
-  const [dishesLoading, setDishesLoading] = useState(false);
+  const [featuredDishes, setFeaturedDishes] = useState([]);
 
   useEffect(() => {
     fetchChefs();
+    fetchFeaturedDishes();
   }, []);
 
   const fetchChefs = async () => {
     setLoading(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      let res;
-      try {
-        res = await axios.get(`${API_URL}/api/customer/chefs`, { headers });
-      } catch {
-        res = await axios.get(`${API_URL_WEB}/api/customer/chefs`, { headers });
-      }
+      const res = await apiClient.get('/api/customer/chefs', { headers });
       setChefs(res.data.data || []);
     } catch (error) {
       console.error('Fetch chefs error:', error);
-      Alert.alert('Error', 'Failed to fetch chefs list');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchChefDetails = async (chefId) => {
-    setDishesLoading(true);
+  const fetchFeaturedDishes = async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      let res;
-      try {
-        res = await axios.get(`${API_URL}/api/customer/chefs/${chefId}`, { headers });
-      } catch {
-        res = await axios.get(`${API_URL_WEB}/api/customer/chefs/${chefId}`, { headers });
+      // Gather dishes from all chefs or call customer menu
+      const res = await apiClient.get('/api/customer/chefs', { headers });
+      const allChefs = res.data.data || [];
+      
+      let gatheredDishes = [];
+      for (const chef of allChefs) {
+        if (chef.user_id) {
+          const detailRes = await apiClient.get(`/api/customer/chefs/${chef.user_id}`, { headers });
+          const chefDishes = detailRes.data.data.dishes || [];
+          // Add chef name context to dishes
+          chefDishes.forEach(d => {
+            d.chef_name = chef.users?.name;
+            d.chef_id = chef.user_id;
+          });
+          gatheredDishes = [...gatheredDishes, ...chefDishes];
+        }
       }
-      setChefDishes(res.data.data.dishes || []);
+      setFeaturedDishes(gatheredDishes.slice(0, 10)); // Top 10 dishes
     } catch (error) {
-      console.error('Fetch chef details error:', error);
-      Alert.alert('Error', 'Failed to fetch chef menu');
-    } finally {
-      setDishesLoading(false);
-    }
-  };
-
-  const handleSelectChef = (chef) => {
-    if (selectedChef?.user_id === chef.user_id) {
-      setSelectedChef(null);
-      setChefDishes([]);
-    } else {
-      setSelectedChef(chef);
-      fetchChefDetails(chef.user_id);
+      console.error('Fetch featured dishes error:', error);
     }
   };
 
@@ -78,93 +69,129 @@ export default function CustomerHomeScreen() {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   };
 
-  const renderChefItem = ({ item }) => {
-    const isExpanded = selectedChef?.user_id === item.user_id;
-
-    return (
-      <View style={styles.chefCard}>
-        <TouchableOpacity style={styles.chefHeader} onPress={() => handleSelectChef(item)}>
-          <Image
-            source={{ uri: item.profile_image || 'https://placehold.co/150' }}
-            style={styles.chefImage}
-          />
-          <View style={styles.chefInfo}>
-            <Text style={styles.chefName}>{item.users?.name || 'Chef Alice'}</Text>
-            <Text style={styles.cuisineBadge}>{item.cuisine_type || 'Specialty'}</Text>
-            <Text style={styles.chefBio} numberOfLines={2}>{item.bio || 'Home chef cooks with love.'}</Text>
-          </View>
-          <View style={styles.ratingContainer}>
-            <Text style={styles.ratingStar}>★</Text>
-            <Text style={styles.ratingText}>{item.rating?.toFixed(1) || '5.0'}</Text>
-          </View>
-        </TouchableOpacity>
-
-        {isExpanded && (
-          <View style={styles.dishesContainer}>
-            <Text style={styles.sectionTitle}>Menu</Text>
-            {dishesLoading ? (
-              <ActivityIndicator color="#ff6b35" style={{ margin: 20 }} />
-            ) : chefDishes.length === 0 ? (
-              <Text style={styles.emptyMenu}>No dishes available</Text>
-            ) : (
-              chefDishes.map((dish) => (
-                <View key={dish.id} style={styles.dishRow}>
-                  <View style={styles.dishLeft}>
-                    <Text style={styles.dishName}>{dish.name}</Text>
-                    <Text style={styles.dishDesc} numberOfLines={2}>{dish.description}</Text>
-                    <Text style={styles.dishPrice}>${parseFloat(dish.price).toFixed(2)}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.addToCartBtn}
-                    onPress={() => {
-                      addToCart(dish, item.user_id);
-                      Alert.alert('Success', `${dish.name} added to cart!`);
-                    }}
-                  >
-                    <Text style={styles.addToCartText}>Add +</Text>
-                  </TouchableOpacity>
-                </View>
-              ))
-            )}
-          </View>
-        )}
-      </View>
-    );
-  };
+  const LocationIcon = icons.location;
+  const ExpandMoreIcon = icons.expandMore;
+  const NotificationIcon = icons.notifications;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.searchBarContainer}>
-        <TextInput
-          style={styles.searchBar}
-          placeholder="Search chefs or cuisines..."
-          value={search}
-          onChangeText={setSearch}
-        />
-        {getCartCount() > 0 && (
-          <View style={styles.cartBadge}>
-            <Text style={styles.cartBadgeText}>{getCartCount()}</Text>
-          </View>
-        )}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Top AppBar */}
+      <View style={[styles.appBar, { paddingHorizontal: spacing.containerPaddingMobile }]}>
+        <View style={styles.locationContainer}>
+          <LocationIcon size={18} color={colors.primary} />
+          <Text style={[styles.locationText, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
+            San Francisco, CA
+          </Text>
+          <ExpandMoreIcon size={16} color={colors.mutedText} />
+        </View>
+
+        <Text style={[styles.logo, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
+          Nudgify
+        </Text>
+
+        <Pressable onPress={() => navigation.navigate('Notifications')} style={styles.notificationBtn}>
+          <NotificationIcon size={20} color={colors.mutedText} />
+        </Pressable>
       </View>
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#ff6b35" />
-          <Text style={styles.loadingText}>Finding local home chefs...</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Search Bar */}
+        <View style={{ paddingHorizontal: spacing.containerPaddingMobile, marginVertical: spacing.stackLg }}>
+          <SearchBar
+            placeholder="Search for chefs or cuisines..."
+            value={search}
+            onChangeText={setSearch}
+          />
         </View>
-      ) : filteredChefs.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>No chefs found matching "{search}"</Text>
+
+        {/* Featured Chefs Section */}
+        <View style={styles.section}>
+          <View style={[styles.sectionHeader, { paddingHorizontal: spacing.containerPaddingMobile }]}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: typography.fontFamilies.heading }]}>
+                Featured Chefs
+              </Text>
+              <Text style={[styles.sectionSub, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
+                The masters behind the kitchen
+              </Text>
+            </View>
+          </View>
+
+          {loading ? (
+            <View style={{ paddingHorizontal: spacing.containerPaddingMobile, flexDirection: 'row' }}>
+              <Skeleton width={260} height={200} style={{ marginRight: 16 }} />
+              <Skeleton width={100} height={200} />
+            </View>
+          ) : filteredChefs.length === 0 ? (
+            <View style={{ paddingHorizontal: spacing.containerPaddingMobile }}>
+              <Text style={{ color: colors.mutedText }}>No chefs found matching your criteria</Text>
+            </View>
+          ) : (
+            <FlatList
+              horizontal
+              data={filteredChefs}
+              renderItem={({ item }) => (
+                <ChefCard
+                  chef={item}
+                  onPress={() => navigation.navigate('ChefProfile', { chefId: item.user_id, chefName: item.users?.name })}
+                  style={styles.chefCard}
+                />
+              )}
+              keyExtractor={(item) => String(item.user_id)}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: spacing.containerPaddingMobile }}
+            />
+          )}
         </View>
-      ) : (
-        <FlatList
-          data={filteredChefs}
-          renderItem={renderChefItem}
-          keyExtractor={(item) => String(item.user_id)}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+
+        {/* Fresh from Local Kitchens Section */}
+        <View style={[styles.section, { marginTop: spacing.stackXl, paddingHorizontal: spacing.containerPaddingMobile }]}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: typography.fontFamilies.heading }]}>
+                Fresh from Local Kitchens
+              </Text>
+              <Text style={[styles.sectionSub, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
+                Handcrafted meals ready for you
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.dishGrid}>
+            {featuredDishes.map((dish) => (
+              <DishCard
+                key={dish.id}
+                dish={dish}
+                onAddPress={() => {
+                  addToCart(dish, dish.chef_id);
+                  Alert.alert('Success', `${dish.name} added to cart!`);
+                }}
+                onPress={() => {
+                  addToCart(dish, dish.chef_id);
+                  Alert.alert('Success', `${dish.name} added to cart!`);
+                }}
+              />
+            ))}
+            {featuredDishes.length === 0 && (
+              <Text style={{ color: colors.mutedText, textAlign: 'center', marginVertical: 20 }}>
+                No fresh dishes available today.
+              </Text>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Floating View Cart Button if cart is not empty */}
+      {getCartCount() > 0 && (
+        <Pressable
+          style={[styles.fabCart, { backgroundColor: colors.secondary, borderRadius: radius.full }]}
+          onPress={() => navigation.navigate('Cart')}
+        >
+          <Text style={{ fontSize: 20, color: '#ffffff', marginRight: 6 }}>🛒</Text>
+          <Text style={[styles.fabCartText, { color: '#ffffff', fontFamily: typography.fontFamilies.primaryBold }]}>
+            {getCartCount()}
+          </Text>
+        </Pressable>
       )}
     </SafeAreaView>
   );
@@ -173,176 +200,74 @@ export default function CustomerHomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f5f7',
   },
-  searchBarContainer: {
+  appBar: {
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    justifyContent: 'space-between',
   },
-  searchBar: {
-    flex: 1,
-    height: 46,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: '#1e1e24',
-  },
-  cartBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#ff6b35',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 12,
-  },
-  cartBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
-  },
-  emptyText: {
-    color: '#888',
-    fontSize: 15,
-  },
-  listContent: {
-    padding: 16,
-  },
-  chefCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#1f2687',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  chefHeader: {
+  locationContainer: {
     flexDirection: 'row',
-    padding: 16,
     alignItems: 'center',
   },
-  chefImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#e2e8f0',
-  },
-  chefInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  chefName: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#1e1e24',
-  },
-  cuisineBadge: {
-    fontSize: 11,
-    color: '#ff6b35',
-    backgroundColor: '#fff8f5',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  chefBio: {
+  locationText: {
     fontSize: 13,
-    color: '#666',
-    marginTop: 6,
+    marginHorizontal: 4,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+  logo: {
+    fontSize: 22,
+    fontWeight: '800',
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -40, // center offset estimation
   },
-  ratingStar: {
-    color: '#d97706',
-    fontSize: 12,
-    marginRight: 2,
+  notificationBtn: {
+    padding: 6,
   },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#d97706',
+  scrollContent: {
+    paddingBottom: 100,
   },
-  dishesContainer: {
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    padding: 16,
-    backgroundColor: '#fafbfc',
+  section: {
+    width: '100%',
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1e1e24',
-    marginBottom: 12,
-  },
-  emptyMenu: {
-    textAlign: 'center',
-    color: '#888',
-    paddingVertical: 12,
-  },
-  dishRow: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    alignItems: 'flex-end',
+    marginBottom: 16,
   },
-  dishLeft: {
-    flex: 1,
-    paddingRight: 16,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
   },
-  dishName: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1e1e24',
-  },
-  dishDesc: {
-    fontSize: 12,
-    color: '#666',
+  sectionSub: {
+    fontSize: 13,
     marginTop: 2,
   },
-  dishPrice: {
+  chefCard: {
+    width: 280,
+    marginRight: 16,
+  },
+  dishGrid: {
+    marginTop: 8,
+  },
+  fabCart: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 99,
+  },
+  fabCartText: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ff6b35',
-    marginTop: 4,
-  },
-  addToCartBtn: {
-    backgroundColor: '#ff6b35',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addToCartText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 'bold',
   },
 });

@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 6000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -23,14 +23,25 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login';
+
+    if (error.response?.status === 401 && !isLoginPage) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
         window.location.href = '/login';
       }
     }
+
+    if (!error.response) {
+      error.userMessage =
+        `Cannot reach the backend API at ${API_BASE_URL}. Make sure the backend is running and NEXT_PUBLIC_API_URL is correct.`;
+    } else {
+      error.userMessage = error.response.data?.message || `Request failed with status ${error.response.status}`;
+    }
+
     return Promise.reject(error);
   }
 );
 
 export default apiClient;
+export { API_BASE_URL };

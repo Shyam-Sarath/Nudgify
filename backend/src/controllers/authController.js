@@ -84,6 +84,10 @@ const login = async (req, res) => {
     throw new AppError('Invalid credentials', 401);
   }
 
+  if (user.active === false) {
+    throw new AppError('Your account has been disabled. Please contact support.', 403);
+  }
+
   const token = generateToken(user);
 
   res.status(200).json({

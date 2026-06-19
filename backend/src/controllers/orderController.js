@@ -4,7 +4,7 @@ const { AppError } = require('../middleware/errorHandler');
 // Place Order
 const placeOrder = async (req, res) => {
   const customerId = req.user.id;
-  const { chefId, items, totalAmount } = req.body;
+  const { chefId, items, totalAmount, deliveryAddress, specialInstructions } = req.body;
 
   if (!chefId || !items || items.length === 0 || !totalAmount) {
     throw new AppError('Invalid order data', 400);
@@ -13,7 +13,14 @@ const placeOrder = async (req, res) => {
   // Create order
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .insert({ customer_id: customerId, chef_id: chefId, total_amount: totalAmount, status: 'pending' })
+    .insert({
+      customer_id: customerId,
+      chef_id: chefId,
+      total_amount: totalAmount,
+      status: 'pending',
+      delivery_address: deliveryAddress,
+      special_instructions: specialInstructions,
+    })
     .select()
     .single();
 

@@ -38,20 +38,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-secondary flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-dark mb-2">Nudgify</h1>
-        <p className="text-gray-600 mb-8">Admin Dashboard</p>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="glass-panel p-8 w-full max-w-md border border-border/25 shadow-xl animate-slide-up">
+        <h1 className="text-3xl font-bold font-serif text-primary-950 mb-1">Nudgify</h1>
+        <p className="text-secondary-600 font-serif font-bold text-xs uppercase tracking-widest mb-8">Admin Dashboard</p>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-5">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-xl text-sm font-medium">
               {error}
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-dark mb-2">Email</label>
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-tertiary-600 uppercase tracking-widest font-serif">Email Address</label>
             <input
               type="email"
               value={email}
@@ -62,8 +62,8 @@ export default function LoginPage() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-dark mb-2">Password</label>
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-tertiary-600 uppercase tracking-widest font-serif">Password</label>
             <input
               type="password"
               value={password}
@@ -77,14 +77,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full"
+            className="btn-primary w-full font-serif text-base py-3 mt-2"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
-        <p className="text-center text-gray-600 text-sm mt-6">
-          Demo credentials: admin@nudgify.com / admin123
+        <p className="text-center text-tertiary-500 text-xs mt-6 font-medium">
+          Demo credentials: <span className="font-semibold text-primary-950">admin@nudgify.com</span> / <span className="font-semibold text-primary-950">admin123</span>
         </p>
       </div>
     </div>

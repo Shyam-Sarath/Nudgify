@@ -1,30 +1,89 @@
-import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, SafeAreaView, Alert, Pressable } from 'react-native';
 import { useAuthStore } from '../../store/store';
+import { useTheme } from '../../theme';
+import { ProfileHeader, Card, Button, Input, Divider } from '../../components';
+import apiClient from '../../config/api';
 
-export default function CustomerProfileScreen() {
-  const { user, logout } = useAuthStore();
+export default function CustomerProfileScreen({ navigation }) {
+  const { user, token, setAuth, logout } = useAuthStore();
+  const { colors, spacing, radius, typography } = useTheme();
+
+  const [name, setName] = useState(user?.name || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveProfile = async () => {
+    if (!name.trim()) {
+      Alert.alert('Error', 'Name cannot be empty');
+      return;
+    }
+    setSaving(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await apiClient.put('/api/customer/profile', { name }, { headers });
+      
+      const updatedUser = { ...user, name: res.data.data.name };
+      setAuth(updatedUser, token);
+      Alert.alert('Success', 'Profile updated successfully!');
+    } catch (error) {
+      console.error('Update customer profile error:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
-          </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={{ paddingHorizontal: spacing.containerPaddingMobile, paddingTop: 24 }}>
+        {/* Profile Header */}
+        <ProfileHeader
+          name={name}
+          roleLabel="Customer"
+          subtext={user?.email || 'customer@nudgify.test'}
+        />
+
+        <View style={styles.form}>
+          <Input
+            label="Edit Full Name"
+            value={name}
+            onChangeText={setName}
+            placeholder="Your Name"
+          />
+          <Button
+            title="Save Name Changes"
+            onPress={handleSaveProfile}
+            loading={saving}
+            disabled={saving}
+            style={{ marginTop: spacing.stackSm }}
+          />
         </View>
 
-        <View style={styles.infoContainer}>
-          <Text style={styles.name}>{user?.name || 'Customer Name'}</Text>
-          <Text style={styles.email}>{user?.email || 'customer@example.com'}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{user?.role?.toUpperCase() || 'CUSTOMER'}</Text>
-          </View>
-        </View>
+        {/* Menu Options */}
+        <Card variant="flat" style={styles.menuGroup}>
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate('Settings')}>
+            <Text style={[styles.menuText, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
+              Settings
+            </Text>
+            <Text style={{ color: colors.mutedText }}>→</Text>
+          </Pressable>
+          <Divider />
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate('Notifications')}>
+            <Text style={[styles.menuText, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
+              Notifications
+            </Text>
+            <Text style={{ color: colors.mutedText }}>→</Text>
+          </Pressable>
+        </Card>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
+        {/* Logout */}
+        <Button
+          title="Log Out"
+          variant="outline"
+          onPress={logout}
+          style={StyleSheet.flatten([styles.logoutBtn, { borderColor: colors.error, marginTop: spacing.stackLg * 2 }])}
+          textStyle={{ color: colors.error }}
+        />
       </View>
     </SafeAreaView>
   );
@@ -33,84 +92,24 @@ export default function CustomerProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f5f7',
-    justifyContent: 'center',
+  },
+  form: {
+    marginVertical: 20,
+  },
+  menuGroup: {
+    padding: 16,
+    marginTop: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingVertical: 12,
   },
-  card: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 30,
-    alignItems: 'center',
-    shadowColor: '#1f2687',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
-    shadowRadius: 24,
-    elevation: 4,
-  },
-  avatarContainer: {
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#ff6b35',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#ff6b35',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 36,
-    fontWeight: 'bold',
-  },
-  infoContainer: {
-    alignItems: 'center',
-    marginBottom: 35,
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1e1e24',
-  },
-  email: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  roleBadge: {
-    marginTop: 12,
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  roleText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
-    letterSpacing: 0.5,
+  menuText: {
+    fontSize: 15,
   },
   logoutBtn: {
     width: '100%',
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: '#ef4444',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  logoutText: {
-    color: '#ef4444',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
