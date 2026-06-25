@@ -1,38 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, Image, Pressable, Alert, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Image, Pressable, Alert, SafeAreaView, ActivityIndicator, ScrollView } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../config/api';
-import { useAuthStore, useDataStore } from '../../store/store';
+import { useDataStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { Card, Button, Input, Modal, Skeleton, EmptyState, Badge, Divider } from '../../components';
 
-const DISH_PRESETS = [
-  { name: 'Pizza', url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=150&q=80', base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQGAb6eGQQAAAABJRU5ErkJggg==' },
-  { name: 'Pasta', url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=150&q=80', base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' },
-  { name: 'Salad', url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=150&q=80', base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPjPUAwADoYBgFV562kAAAAASUVORK5CYII==' }
-];
-
 export default function ChefMenuScreen() {
-  const { token } = useAuthStore();
   const { colors, spacing, typography, radius } = useTheme();
   const { dishes, setDishes } = useDataStore();
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
-  const [selectedPresetIdx, setSelectedPresetIdx] = useState(0);
+  const [customCategory, setCustomCategory] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
     fetchDishes();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await apiClient.get('/api/categories');
+      setCategories(res.data.data || []);
+    } catch (err) {
+      console.error('Fetch categories error', err);
+    }
+  };
 
   const fetchDishes = async () => {
     setLoading(true);
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-      const res = await apiClient.get('/api/chef/dishes', { headers });
+      const res = await apiClient.get('/api/chef/dishes');
       setDishes(res.data.data || []);
     } catch (error) {
       console.error('Fetch dishes error:', error);
@@ -42,30 +47,73 @@ export default function ChefMenuScreen() {
     }
   };
 
-  const handleAddDish = async () => {
-    if (!name || !price) {
-      Alert.alert('Error', 'Name and Price are required');
+  const handlePickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      Alert.alert('Permission needed', 'You need to grant camera roll permissions to upload dish images.');
       return;
     }
 
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      setSelectedImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    }
+  };
+
+  const handleAddDish = async () => {
+    if (submitLoading) return; // Prevent double submission
+
+    const trimmedName = name ? name.trim() : '';
+    const parsedPrice = parseFloat(price);
+
+    if (!trimmedName) {
+      Alert.alert('Validation Error', 'Dish name is required.');
+      return;
+    }
+
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      Alert.alert('Validation Error', 'Price must be a valid number greater than 0.');
+      return;
+    }
+
+    const finalCategory = category === 'Custom' ? customCategory.trim() : category;
+
     setSubmitLoading(true);
     try {
-      const headers = { Authorization: `Bearer ${token}` };
+      // If it's a completely new category, create it globally
+      if (category === 'Custom' && finalCategory) {
+        try {
+          await apiClient.post('/api/categories', { name: finalCategory });
+          fetchCategories(); // refresh list
+        } catch (e) {
+          console.warn('Category might already exist', e);
+        }
+      }
+
       const dishPayload = {
-        name,
+        name: trimmedName,
         description,
-        price: parseFloat(price),
-        category,
+        price: parsedPrice,
+        category: finalCategory || null,
         availability: true,
       };
 
-      const res = await apiClient.post('/api/chef/dishes', dishPayload, { headers });
+      console.log('Sending dish payload:', dishPayload);
+
+      const res = await apiClient.post('/api/chef/dishes', dishPayload);
       const newDish = res.data.data;
 
-      // Upload image preset if selected
-      if (selectedPresetIdx !== null) {
-        const base64 = DISH_PRESETS[selectedPresetIdx].base64;
-        await apiClient.post(`/api/chef/dishes/${newDish.id}/image`, { imageBase64: base64 }, { headers });
+      // Upload image if selected
+      if (selectedImage) {
+        await apiClient.post(`/api/chef/dishes/${newDish.id}/image`, { imageBase64: selectedImage });
       }
 
       Alert.alert('Success', 'Dish added to your menu!');
@@ -74,7 +122,8 @@ export default function ChefMenuScreen() {
       setDescription('');
       setPrice('');
       setCategory('');
-      setSelectedPresetIdx(0);
+      setCustomCategory('');
+      setSelectedImage(null);
       fetchDishes();
     } catch (error) {
       console.error('Add dish error:', error);
@@ -95,8 +144,7 @@ export default function ChefMenuScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const headers = { Authorization: `Bearer ${token}` };
-              await apiClient.delete(`/api/chef/dishes/${dishId}`, { headers });
+              await apiClient.delete(`/api/chef/dishes/${dishId}`);
               Alert.alert('Success', 'Dish deleted');
               fetchDishes();
             } catch (error) {
@@ -111,9 +159,8 @@ export default function ChefMenuScreen() {
 
   const handleToggleAvailability = async (item) => {
     try {
-      const headers = { Authorization: `Bearer ${token}` };
       const updatedPayload = { ...item, availability: !item.availability };
-      await apiClient.put(`/api/chef/dishes/${item.id}`, updatedPayload, { headers });
+      await apiClient.put(`/api/chef/dishes/${item.id}`, updatedPayload);
       fetchDishes();
     } catch (error) {
       console.error('Toggle availability error:', error);
@@ -122,55 +169,80 @@ export default function ChefMenuScreen() {
   };
 
   const renderDishItem = ({ item }) => (
-    <Card variant="outlined" style={styles.dishCard}>
+    <Card variant="outlined" style={[styles.dishCard, { borderRadius: 14 }]}>
       <View style={styles.dishHeader}>
         <Image
           source={{ uri: item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80' }}
-          style={[styles.dishImage, { borderRadius: radius.default }]}
+          style={[styles.dishImage, { borderRadius: 12 }]}
         />
         <View style={styles.dishInfo}>
-          <Text style={[styles.dishName, { color: colors.text, fontFamily: typography.fontFamilies.heading }]}>
-            {item.name}
-          </Text>
-          <Text style={[styles.dishDesc, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]} numberOfLines={2}>
-            {item.description}
-          </Text>
-          <Text style={[styles.dishPrice, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
-            ${parseFloat(item.price).toFixed(2)}
-          </Text>
-        </View>
+          <View style={styles.dishTopRow}>
+            <Text style={[styles.dishName, { color: colors.text, fontFamily: typography.fontFamilies.heading }]}>
+              {item.name}
+            </Text>
+            <Pressable
+              style={[
+                styles.availBadge,
+                {
+                  borderRadius: radius.full,
+                  backgroundColor: item.availability ? '#10B98115' : '#EF444415',
+                }
+              ]}
+              onPress={() => handleToggleAvailability(item)}
+            >
+              <View style={[styles.availDot, { backgroundColor: item.availability ? '#10B981' : '#EF4444' }]} />
+              <Text style={[styles.availText, {
+                color: item.availability ? '#10B981' : '#EF4444',
+                fontFamily: typography.fontFamilies.primaryBold,
+              }]}>
+                {item.availability ? 'Live' : 'Hidden'}
+              </Text>
+            </Pressable>
+          </View>
 
-        <Pressable
-          style={[
-            styles.statusToggle,
-            { borderRadius: radius.full },
-            item.availability
-              ? { borderColor: colors.primary, backgroundColor: colors.primary + '10' }
-              : { borderColor: colors.error, backgroundColor: colors.error + '10' }
-          ]}
-          onPress={() => handleToggleAvailability(item)}
-        >
-          <Text style={[styles.statusToggleText, { color: item.availability ? colors.primary : colors.error, fontFamily: typography.fontFamilies.primaryBold }]}>
-            {item.availability ? 'Active' : 'Hidden'}
+          {item.category ? (
+            <View style={[styles.catBadge, { backgroundColor: colors.primary + '15', borderRadius: radius.sm }]}>
+              <Text style={[styles.catText, { color: colors.primary, fontFamily: typography.fontFamilies.primaryBold }]}>
+                {item.category}
+              </Text>
+            </View>
+          ) : null}
+
+          <Text style={[styles.dishDesc, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]} numberOfLines={2}>
+            {item.description || 'No description provided.'}
           </Text>
-        </Pressable>
+          <View style={styles.priceDeleteRow}>
+            <Text style={[styles.dishPrice, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
+              ${parseFloat(item.price).toFixed(2)}
+            </Text>
+            <Pressable style={styles.deleteBtn} onPress={() => handleDeleteDish(item.id)}>
+              <Text style={[styles.deleteText, { color: '#EF4444', fontFamily: typography.fontFamilies.primaryBold }]}>
+                🗑 Remove
+              </Text>
+            </Pressable>
+          </View>
+        </View>
       </View>
-      <Divider />
-      <Pressable style={styles.deleteBtn} onPress={() => handleDeleteDish(item.id)}>
-        <Text style={[styles.deleteText, { color: colors.error, fontFamily: typography.fontFamilies.primaryBold }]}>
-          Remove Dish
-        </Text>
-      </Pressable>
     </Card>
   );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.topBar, { paddingHorizontal: spacing.containerPaddingMobile, borderBottomColor: colors.border + '50' }]}>
-        <Text style={[styles.title, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
-          Menu Directory
-        </Text>
-        <Button title="+ Add Dish" onPress={() => setModalVisible(true)} style={styles.addBtn} />
+      <View style={[styles.topBar, { paddingHorizontal: spacing.containerPaddingMobile, backgroundColor: colors.primary }]}>
+        <View>
+          <Text style={[styles.title, { color: '#ffffff', fontFamily: typography.fontFamilies.heading }]}>
+            My Menu
+          </Text>
+          <Text style={[styles.dishCount, { color: 'rgba(255,255,255,0.7)', fontFamily: typography.fontFamilies.primary }]}>
+            {dishes.length} dish{dishes.length !== 1 ? 'es' : ''} on menu
+          </Text>
+        </View>
+        <Pressable
+          style={[styles.addBtn, { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: radius.full }]}
+          onPress={() => setModalVisible(true)}
+        >
+          <Text style={[styles.addBtnText, { color: '#ffffff', fontFamily: typography.fontFamilies.primaryBold }]}>+ Add Dish</Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -228,41 +300,71 @@ export default function ChefMenuScreen() {
             keyboardType="numeric"
             containerStyle={StyleSheet.flatten({ flex: 1, marginRight: 8 })}
           />
-
-          <Input
-            label="Category"
-            value={category}
-            onChangeText={setCategory}
-            placeholder="Seafood"
-            containerStyle={StyleSheet.flatten({ flex: 1, marginLeft: 8 })}
-          />
         </View>
 
         <Text style={[styles.label, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold, fontSize: typography.sizes.sm }]}>
-          Select Photo Preset
+          Category
         </Text>
-        <View style={styles.presetContainer}>
-          {DISH_PRESETS.map((preset, idx) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+          {[{ id: 'none', name: 'None' }, ...categories, { id: 'custom', name: 'Custom' }].map((cat) => (
             <Pressable
-              key={idx}
+              key={cat.id || cat.name}
               style={[
-                styles.presetBtn,
-                { borderRadius: radius.default },
-                selectedPresetIdx === idx && { borderColor: colors.primary, borderWidth: 2 }
+                styles.catChip,
+                { borderRadius: radius.full, borderColor: colors.border },
+                category === cat.name && { backgroundColor: colors.primary, borderColor: colors.primary }
               ]}
-              onPress={() => setSelectedPresetIdx(idx)}
+              onPress={() => setCategory(cat.name === 'None' ? '' : cat.name)}
             >
-              <Image source={{ uri: preset.url }} style={[styles.presetThumb, { borderRadius: radius.sm }]} />
               <Text style={[
-                styles.presetName,
-                { color: colors.mutedText, fontFamily: typography.fontFamilies.primary },
-                selectedPresetIdx === idx && { color: colors.primary, fontFamily: typography.fontFamilies.primaryBold }
+                styles.catChipText,
+                { color: colors.text, fontFamily: typography.fontFamilies.primary },
+                category === cat.name && { color: '#ffffff', fontFamily: typography.fontFamilies.primaryBold }
               ]}>
-                {preset.name}
+                {cat.name}
               </Text>
             </Pressable>
           ))}
+        </ScrollView>
+
+        {category === 'Custom' && (
+          <Input
+            label="New Category Name"
+            value={customCategory}
+            onChangeText={setCustomCategory}
+            placeholder="E.g. Vegan"
+            style={{ marginTop: 12 }}
+          />
+        )}
+
+        <Text style={[styles.label, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold, fontSize: typography.sizes.sm }]}>
+          Dish Photo
+        </Text>
+        
+        <View style={styles.photoActionsRow}>
+          <Button
+            title="Choose Photo"
+            onPress={handlePickImage}
+            variant="outline"
+            style={{ flex: 1, marginRight: selectedImage ? 8 : 0 }}
+          />
+          {selectedImage && (
+            <Button
+              title="Remove"
+              onPress={() => setSelectedImage(null)}
+              variant="outline"
+              style={{ paddingHorizontal: 12 }}
+            />
+          )}
         </View>
+        
+        {selectedImage ? (
+          <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+        ) : (
+          <View style={[styles.previewPlaceholder, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.border }]}>
+            <Text style={{ color: colors.mutedText, fontFamily: typography.fontFamilies.primary }}>No photo selected</Text>
+          </View>
+        )}
 
         <View style={styles.modalActions}>
           <Button
@@ -292,17 +394,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: 60,
-    borderBottomWidth: 1,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  dishCount: {
+    fontSize: 12,
+    marginTop: 2,
   },
   addBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 18,
   },
+  addBtnText: { fontSize: 13 },
   skeletonContainer: {
     paddingTop: 16,
   },
@@ -311,51 +419,74 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   dishCard: {
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginBottom: 14,
   },
   dishHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   dishImage: {
-    width: 64,
-    height: 64,
+    width: 70,
+    height: 70,
     objectFit: 'cover',
+    marginRight: 12,
   },
   dishInfo: {
     flex: 1,
-    marginLeft: 12,
-    marginRight: 8,
+  },
+  dishTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   dishName: {
     fontSize: 15,
     fontWeight: '700',
+    flex: 1,
+    marginRight: 6,
   },
+  availBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  availDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  availText: { fontSize: 11 },
+  catBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginBottom: 4,
+  },
+  catText: { fontSize: 10 },
   dishDesc: {
     fontSize: 12,
-    marginTop: 2,
     lineHeight: 16,
+    marginBottom: 6,
   },
   dishPrice: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  priceDeleteRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 4,
   },
-  statusToggle: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-  },
-  statusToggleText: {
-    fontSize: 11,
-  },
   deleteBtn: {
-    alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   deleteText: {
-    fontSize: 13,
+    fontSize: 12,
   },
   modalTitle: {
     fontSize: 20,
@@ -371,25 +502,37 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
   },
-  presetContainer: {
+  catChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  catChipText: {
+    fontSize: 13,
+  },
+  categoryScroll: {
+    paddingBottom: 8,
+    marginBottom: 8,
+  },
+  photoActionsRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  presetBtn: {
-    alignItems: 'center',
-    padding: 4,
-    flex: 1,
-  },
-  presetThumb: {
-    width: 50,
-    height: 50,
+  previewImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
     objectFit: 'cover',
   },
-  presetName: {
-    fontSize: 11,
-    marginTop: 4,
+  previewPlaceholder: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalActions: {
     flexDirection: 'row',

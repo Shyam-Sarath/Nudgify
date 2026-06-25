@@ -15,6 +15,7 @@ interface ChefData {
   bio?: string;
   rating?: number;
   profile_image?: string;
+  delivery_time?: string;
   users?: ChefUser;
 }
 
@@ -62,6 +63,12 @@ export const ChefCard: React.FC<Props> = ({ chef, onPress, style }) => {
                 <MapPinIcon size={12} color="#ffffff" style={{ marginRight: 2 }} />
                 <Text style={[styles.metaText, { color: '#ffffff', fontFamily: typography.fontFamilies.primaryMedium }]}>
                   Local Chef
+                </Text>
+              </View>
+              <Text style={[styles.bullet, { color: 'rgba(255,255,255,0.7)' }]}>•</Text>
+              <View style={styles.metaItem}>
+                <Text style={[styles.metaText, { color: '#ffffff', fontFamily: typography.fontFamilies.primaryMedium }]}>
+                  ⏱ {chef.delivery_time || '25-40 min'}
                 </Text>
               </View>
             </View>

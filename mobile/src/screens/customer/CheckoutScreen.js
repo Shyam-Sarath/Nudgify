@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, Text, View, Image, ScrollView, TextInput, Alert, SafeAreaView, Pressable, PanResponder, Animated, Dimensions } from 'react-native';
 import apiClient from '../../config/api';
-import { useCartStore, useAuthStore } from '../../store/store';
+import { useCartStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { Button, Card, Divider } from '../../components';
 
@@ -9,11 +9,11 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function CheckoutScreen({ navigation }) {
   const { cart, chefId, clearCart } = useCartStore();
-  const { token } = useAuthStore();
   const { colors, spacing, radius, typography } = useTheme();
 
   const [address, setAddress] = useState('482 Riverside Drive, Apt 4B, New York, NY 10027');
-  const [paymentMethod, setPaymentMethod] = useState('apple'); // 'apple' or 'card'
+  const [instructions, setInstructions] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('card');
   const [loading, setLoading] = useState(false);
 
   // Slide track variables
@@ -37,7 +37,7 @@ export default function CheckoutScreen({ navigation }) {
           Animated.timing(slideX, {
             toValue: maxSlide,
             duration: 100,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }).start(() => {
             handleConfirmOrder();
           });
@@ -45,7 +45,7 @@ export default function CheckoutScreen({ navigation }) {
           // Cancel slide, return to start
           Animated.spring(slideX, {
             toValue: 0,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }).start();
         }
       },
@@ -61,11 +61,12 @@ export default function CheckoutScreen({ navigation }) {
   const totalAmount = getSubtotal() + deliveryFee + taxFee;
 
   const handleConfirmOrder = async () => {
+    if (loading) return; // Prevent double submission
     if (cart.length === 0) return;
     if (!address.trim()) {
       Alert.alert('Error', 'Please enter a delivery address');
       // Reset slider
-      Animated.spring(slideX, { toValue: 0, useNativeDriver: true }).start();
+      Animated.spring(slideX, { toValue: 0, useNativeDriver: false }).start();
       return;
     }
 
@@ -74,18 +75,17 @@ export default function CheckoutScreen({ navigation }) {
       const orderItems = cart.map((item) => ({
         dishId: item.id,
         quantity: item.quantity,
-        price: parseFloat(item.price),
+        price: Number(item.price),
       }));
-
-      const headers = { Authorization: `Bearer ${token}` };
       const orderPayload = {
         chefId,
         items: orderItems,
         totalAmount,
         deliveryAddress: address,
+        specialInstructions: instructions,
       };
 
-      const res = await apiClient.post('/api/order', orderPayload, { headers });
+      const res = await apiClient.post('/api/order', orderPayload);
       const placedOrder = res.data.data;
 
       // Navigate to order tracking and pass order details
@@ -95,7 +95,7 @@ export default function CheckoutScreen({ navigation }) {
       console.error('Checkout error:', error);
       Alert.alert('Checkout Failed', error.response?.data?.message || 'Failed to place order.');
       // Reset slider
-      Animated.spring(slideX, { toValue: 0, useNativeDriver: true }).start();
+      Animated.spring(slideX, { toValue: 0, useNativeDriver: false }).start();
     } finally {
       setLoading(false);
     }
@@ -154,6 +154,23 @@ export default function CheckoutScreen({ navigation }) {
               value={address}
               onChangeText={setAddress}
               placeholder="Enter complete delivery address..."
+              placeholderTextColor={colors.mutedText}
+              multiline
+            />
+          </View>
+        </View>
+
+        {/* Delivery Instructions */}
+        <View style={{ paddingHorizontal: spacing.containerPaddingMobile, marginTop: spacing.stackMd }}>
+          <Text style={[styles.sectionTitle, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
+            Delivery Instructions
+          </Text>
+          <View style={[styles.addressBox, { backgroundColor: colors.surfaceContainerLow, borderRadius: radius.default }]}>
+            <TextInput
+              style={[styles.addressInput, { color: colors.text, fontFamily: typography.fontFamilies.primary }]}
+              value={instructions}
+              onChangeText={setInstructions}
+              placeholder="e.g. Leave at door, ring bell, no plastic bags..."
               placeholderTextColor={colors.mutedText}
               multiline
             />
@@ -248,7 +265,7 @@ export default function CheckoutScreen({ navigation }) {
             </Text>
           </View>
           <Animated.View
-            {...panResponder.panHandlers}
+            {...(loading ? {} : panResponder.panHandlers)}
             style={[
               styles.slideHandle,
               {

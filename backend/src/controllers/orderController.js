@@ -4,11 +4,37 @@ const { AppError } = require('../middleware/errorHandler');
 // Place Order
 const placeOrder = async (req, res) => {
   const customerId = req.user.id;
-  const { chefId, items, totalAmount, deliveryAddress, specialInstructions } = req.body;
+  const { chefId, items, deliveryAddress, specialInstructions } = req.body;
 
-  if (!chefId || !items || items.length === 0 || !totalAmount) {
+  if (!chefId || !items || items.length === 0) {
     throw new AppError('Invalid order data', 400);
   }
+
+  // Server-side price verification — fetch real prices from DB
+  const dishIds = items.map((i) => i.dishId);
+  const { data: dbDishes, error: dishErr } = await supabase
+    .from('dishes')
+    .select('id, price, availability')
+    .in('id', dishIds);
+
+  if (dishErr) throw new AppError('Failed to verify dish prices', 500);
+
+  // Build a price map
+  const priceMap = {};
+  for (const dish of dbDishes) {
+    if (!dish.availability) throw new AppError(`Dish ID ${dish.id} is no longer available`, 400);
+    priceMap[dish.id] = parseFloat(dish.price);
+  }
+
+  // Calculate authoritative server-side total
+  const DELIVERY_FEE = 4.5;
+  const TAX_RATE = 0.08;
+  const subtotal = items.reduce((sum, item) => {
+    const unitPrice = priceMap[item.dishId];
+    if (!unitPrice) throw new AppError(`Dish ID ${item.dishId} not found`, 400);
+    return sum + unitPrice * item.quantity;
+  }, 0);
+  const serverTotal = parseFloat((subtotal + DELIVERY_FEE + subtotal * TAX_RATE).toFixed(2));
 
   // Create order
   const { data: order, error: orderError } = await supabase
@@ -16,7 +42,7 @@ const placeOrder = async (req, res) => {
     .insert({
       customer_id: customerId,
       chef_id: chefId,
-      total_amount: totalAmount,
+      total_amount: serverTotal,
       status: 'pending',
       delivery_address: deliveryAddress,
       special_instructions: specialInstructions,
@@ -26,12 +52,12 @@ const placeOrder = async (req, res) => {
 
   if (orderError) throw new AppError(orderError.message, 500);
 
-  // Create order items
+  // Create order items with server-validated prices
   const orderItems = items.map((item) => ({
     order_id: order.id,
     dish_id: item.dishId,
     quantity: item.quantity,
-    price: item.price,
+    price: priceMap[item.dishId],
   }));
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
@@ -42,7 +68,7 @@ const placeOrder = async (req, res) => {
     throw new AppError('Failed to create order items', 500);
   }
 
-  res.status(201).json({ success: true, message: 'Order placed successfully', data: order });
+  res.status(201).json({ success: true, message: 'Order placed successfully', data: { ...order, total_amount: serverTotal } });
 };
 
 // Get Order By ID

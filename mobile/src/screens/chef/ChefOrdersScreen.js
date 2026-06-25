@@ -6,7 +6,6 @@ import { useTheme } from '../../theme';
 import { OrderCard, Skeleton, EmptyState } from '../../components';
 
 export default function ChefOrdersScreen() {
-  const { token } = useAuthStore();
   const { colors, spacing, typography } = useTheme();
   const { orders, setOrders } = useDataStore();
   const [loading, setLoading] = useState(true);
@@ -18,8 +17,7 @@ export default function ChefOrdersScreen() {
   const fetchChefOrders = async () => {
     setLoading(true);
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-      const res = await apiClient.get('/api/order/chef', { headers });
+      const res = await apiClient.get('/api/order/chef');
       setOrders(res.data.data || []);
     } catch (error) {
       console.error('Fetch chef orders error:', error);
@@ -30,8 +28,7 @@ export default function ChefOrdersScreen() {
 
   const handleUpdateStatus = async (orderId, action) => {
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-      await apiClient.put(`/api/chef/orders/${orderId}/${action}`, {}, { headers });
+      await apiClient.put(`/api/chef/orders/${orderId}/${action}`, {});
       Alert.alert('Success', `Order status updated to: ${action}ed`);
       fetchChefOrders();
     } catch (error) {

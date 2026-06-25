@@ -6,3 +6,4 @@ export { StatCard } from './StatCard';
 export { ProfileHeader } from './ProfileHeader';
 export { MenuSection } from './MenuSection';
 export { NotificationCard } from './NotificationCard';
+export { default as CartStickyPreview } from './CartStickyPreview';

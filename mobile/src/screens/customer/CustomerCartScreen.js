@@ -1,19 +1,41 @@
 import React from 'react';
-import { StyleSheet, Text, View, FlatList, SafeAreaView, Pressable } from 'react-native';
-import { useCartStore } from '../../store/store';
+import { StyleSheet, Text, View, FlatList, SafeAreaView, Pressable, Alert } from 'react-native';
+import { useCartStore, useDataStore } from '../../store/store';
 import { useTheme } from '../../theme';
-import { CartItem, Button, EmptyState } from '../../components';
+import { CartItem, Button, EmptyState, Divider } from '../../components';
+
+const DELIVERY_FEE = 4.5;
+const TAX_RATE = 0.08; // 8%
 
 export default function CustomerCartScreen({ navigation }) {
-  const { cart, chefId, addToCart, removeFromCart } = useCartStore();
+  const { cart, chefId, addToCart, removeFromCart, clearCart } = useCartStore();
+  const { orders } = useDataStore();
   const { colors, spacing, radius, typography } = useTheme();
 
-  const getTotal = () => {
-    return cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
-  };
+  const getSubtotal = () => cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+  const getTax = () => getSubtotal() * TAX_RATE;
+  const getTotal = () => getSubtotal() + DELIVERY_FEE + getTax();
+  const getCartCount = () => cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const getCartCount = () => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
+  const handleRepeatLastOrder = () => {
+    if (!orders || orders.length === 0) {
+      Alert.alert('No Previous Orders', 'You have not placed any orders yet.');
+      return;
+    }
+    // Get the most recent order
+    Alert.alert(
+      'Repeat Last Order?',
+      `This will replace your current cart with items from your last order.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Repeat',
+          onPress: () => {
+            Alert.alert('Coming Soon', 'Repeat order will be available once your order history is linked to dish data.');
+          }
+        }
+      ]
+    );
   };
 
   if (cart.length === 0) {
@@ -26,6 +48,16 @@ export default function CustomerCartScreen({ navigation }) {
           actionTitle="Browse Chefs"
           onAction={() => navigation.navigate('Home')}
         />
+        {orders && orders.length > 0 && (
+          <Pressable
+            style={[styles.repeatBtn, { borderColor: colors.primary, borderRadius: radius.default }]}
+            onPress={handleRepeatLastOrder}
+          >
+            <Text style={[styles.repeatBtnText, { color: colors.primary, fontFamily: typography.fontFamilies.primaryBold }]}>
+              🔄 Repeat Last Order
+            </Text>
+          </Pressable>
+        )}
       </SafeAreaView>
     );
   }
@@ -40,7 +72,16 @@ export default function CustomerCartScreen({ navigation }) {
         <Text style={[styles.headerTitle, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
           Cart ({getCartCount()})
         </Text>
-        <View style={{ width: 20 }} />
+        <Pressable onPress={() => {
+          Alert.alert('Clear Cart', 'Remove all items?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Clear', style: 'destructive', onPress: clearCart }
+          ]);
+        }}>
+          <Text style={[styles.clearText, { color: colors.error, fontFamily: typography.fontFamilies.primaryBold }]}>
+            Clear
+          </Text>
+        </Pressable>
       </View>
 
       <FlatList
@@ -57,10 +98,36 @@ export default function CustomerCartScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       />
 
+      {/* Order Summary Footer */}
       <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
-        <View style={styles.totalRow}>
-          <Text style={[styles.totalLabel, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
+        <View style={styles.summaryRow}>
+          <Text style={[styles.summaryLabel, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
             Subtotal
+          </Text>
+          <Text style={[styles.summaryValue, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
+            ${getSubtotal().toFixed(2)}
+          </Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={[styles.summaryLabel, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
+            Delivery Fee
+          </Text>
+          <Text style={[styles.summaryValue, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
+            ${DELIVERY_FEE.toFixed(2)}
+          </Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={[styles.summaryLabel, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
+            Tax (8%)
+          </Text>
+          <Text style={[styles.summaryValue, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
+            ${getTax().toFixed(2)}
+          </Text>
+        </View>
+        <Divider />
+        <View style={styles.totalRow}>
+          <Text style={[styles.totalLabel, { color: colors.text, fontFamily: typography.fontFamilies.heading }]}>
+            Total
           </Text>
           <Text style={[styles.totalValue, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
             ${getTotal().toFixed(2)}
@@ -78,14 +145,15 @@ export default function CustomerCartScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  repeatBtn: {
+    borderWidth: 1.5,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    marginTop: 16,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  repeatBtnText: { fontSize: 14 },
   header: {
     height: 60,
     flexDirection: 'row',
@@ -93,32 +161,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderBottomWidth: 1,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+  headerTitle: { fontSize: 20, fontWeight: '700' },
+  clearText: { fontSize: 13 },
+  listContent: { paddingTop: 16, paddingBottom: 20 },
+  footer: { padding: 20, borderTopWidth: 1 },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  listContent: {
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
-  footer: {
-    padding: 20,
-    borderTopWidth: 1,
-  },
+  summaryLabel: { fontSize: 14 },
+  summaryValue: { fontSize: 14 },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
+    marginTop: 4,
   },
-  totalLabel: {
-    fontSize: 15,
-  },
-  totalValue: {
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  checkoutBtn: {
-    width: '100%',
-  },
+  totalLabel: { fontSize: 18, fontWeight: '700' },
+  totalValue: { fontSize: 22, fontWeight: '700' },
+  checkoutBtn: { width: '100%' },
 });

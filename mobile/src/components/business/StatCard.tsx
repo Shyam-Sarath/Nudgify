@@ -9,6 +9,7 @@ interface Props {
   iconName: string;
   trend?: string;
   trendUp?: boolean;
+  accentColor?: string;
   subElement?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
@@ -19,50 +20,42 @@ export const StatCard: React.FC<Props> = ({
   iconName,
   trend,
   trendUp = true,
+  accentColor,
   subElement,
   style,
 }) => {
-  const { colors, spacing, typography, icons } = useTheme();
+  const { colors, spacing, radius, typography, icons } = useTheme();
 
-  // Find icon mapping
   const IconComponent = (icons as any)[iconName] || icons.stats;
-  const TrendIcon = icons.trendingUp;
+  const accent = accentColor || colors.primary;
 
   return (
-    <Card variant="flat" style={[styles.container, { backgroundColor: colors.surfaceContainerLow }, style]}>
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.title, { color: colors.mutedText, fontFamily: typography.fontFamilies.primaryMedium }]}>
-            {title}
-          </Text>
-          <Text style={[styles.value, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
-            {value}
-          </Text>
-        </View>
-        <View style={styles.iconCircle}>
-          <IconComponent size={20} color={colors.secondary} />
-        </View>
+    <Card variant="flat" style={[styles.container, { backgroundColor: colors.surfaceContainerLow, borderRadius: radius.default }, style]}>
+      {/* Icon */}
+      <View style={[styles.iconWrap, { backgroundColor: accent + '18', borderRadius: radius.default }]}>
+        <IconComponent size={18} color={accent} />
       </View>
 
-      <View style={styles.footer}>
-        {trend && (
-          <View style={styles.trendRow}>
-            <TrendIcon size={12} color={trendUp ? colors.primary : colors.error} style={styles.trendIcon} />
-            <Text
-              style={[
-                styles.trendText,
-                {
-                  color: trendUp ? colors.primary : colors.error,
-                  fontFamily: typography.fontFamilies.primaryBold,
-                },
-              ]}
-            >
-              {trend}
-            </Text>
-          </View>
-        )}
-        {subElement && <View style={styles.subElementContainer}>{subElement}</View>}
-      </View>
+      <Text style={[styles.value, { color: accent, fontFamily: typography.fontFamilies.heading }]}>
+        {value}
+      </Text>
+
+      <Text style={[styles.title, { color: colors.mutedText, fontFamily: typography.fontFamilies.primaryMedium }]}>
+        {title}
+      </Text>
+
+      {trend && (
+        <View style={[styles.trendRow, { backgroundColor: (trendUp ? colors.primary : colors.error) + '12', borderRadius: radius.sm }]}>
+          <Text style={[styles.trendText, {
+            color: trendUp ? colors.primary : colors.error,
+            fontFamily: typography.fontFamilies.primaryBold,
+          }]}>
+            {trendUp ? '↑ ' : '↓ '}{trend}
+          </Text>
+        </View>
+      )}
+
+      {subElement && <View style={{ marginTop: 8 }}>{subElement}</View>}
     </Card>
   );
 };
@@ -71,39 +64,31 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     minHeight: 140,
-    justifyContent: 'space-between',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  title: {
-    fontSize: 13,
+  iconWrap: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   value: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
-    marginTop: 4,
+    marginBottom: 4,
   },
-  iconCircle: {
-    padding: 8,
-  },
-  footer: {
-    marginTop: 12,
+  title: {
+    fontSize: 12,
+    marginBottom: 10,
   },
   trendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  trendIcon: {
-    marginRight: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   trendText: {
-    fontSize: 11,
-  },
-  subElementContainer: {
-    width: '100%',
+    fontSize: 10,
   },
 });
+
 export default StatCard;

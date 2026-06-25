@@ -20,7 +20,7 @@ async function runMigration() {
   });
 
   try {
-    const migrations = ['001_create_schema.sql', '002_activity_logs.sql'];
+    const migrations = ['001_create_schema.sql', '002_activity_logs.sql', '003_upgrade.sql'];
     for (const file of migrations) {
       const filePath = path.join(__dirname, file);
       console.log(`Running migration: ${file}...`);

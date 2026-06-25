@@ -33,7 +33,7 @@ export default function SettingsScreen({ navigation }) {
             />
           </View>
           <Divider />
-          <Pressable style={styles.row} onPress={() => Alert.alert('Privacy Policy', 'Opening privacy terms...')}>
+          <Pressable style={styles.row} onPress={() => navigation.navigate('PrivacyPolicy')}>
             <Text style={[styles.rowText, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
               Privacy & Security
             </Text>

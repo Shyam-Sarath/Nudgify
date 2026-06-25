@@ -13,6 +13,8 @@ const customerRoutes = require('./routes/customer');
 const dishRoutes = require('./routes/dish');
 const orderRoutes = require('./routes/order');
 const adminRoutes = require('./routes/admin');
+const chatRoutes = require('./routes/chatRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 
 const app = express();
 
@@ -43,6 +45,8 @@ app.use('/api/customer', customerRoutes);
 app.use('/api/dish', dishRoutes);
 app.use('/api/order', orderRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // 404 Handler
 app.use((req, res) => {
@@ -62,9 +66,60 @@ if (require.main === module) {
   const server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    // #region agent log
-    fetch('http://127.0.0.1:7325/ingest/ec45b7eb-196d-4933-afd3-e540532f9309',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'78bd0c'},body:JSON.stringify({sessionId:'78bd0c',runId:'initial',hypothesisId:'C',location:'backend/src/index.js:listen',message:'Backend server started',data:{port:PORT,corsOrigin:process.env.CORS_ORIGIN||'*'},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
+  });
+
+  // Setup WebSocket Server for Chat
+  const WebSocket = require('ws');
+  const wss = new WebSocket.Server({ server });
+  const supabase = require('./config/database');
+
+  // Simple in-memory mapping from userId to WebSocket connection
+  const clients = new Map();
+
+  wss.on('connection', (ws, req) => {
+    // Basic auth check using query param (in production pass a real token)
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const userId = url.searchParams.get('userId');
+
+    if (!userId) {
+      ws.close();
+      return;
+    }
+
+    clients.set(userId, ws);
+
+    ws.on('message', async (messageBuffer) => {
+      try {
+        const data = JSON.parse(messageBuffer.toString());
+        if (data.type === 'send_message') {
+          // Save message to DB
+          const { receiverId, content } = data.payload;
+          
+          const { data: savedMsg, error } = await supabase
+            .from('messages')
+            .insert({ sender_id: userId, receiver_id: receiverId, content })
+            .select()
+            .single();
+
+          if (!error && savedMsg) {
+            // Send back to sender for confirmation
+            ws.send(JSON.stringify({ type: 'new_message', payload: savedMsg }));
+            
+            // Forward to receiver if online
+            const receiverWs = clients.get(String(receiverId));
+            if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
+              receiverWs.send(JSON.stringify({ type: 'new_message', payload: savedMsg }));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('WS Error:', err.message);
+      }
+    });
+
+    ws.on('close', () => {
+      clients.delete(userId);
+    });
   });
 
   server.on('error', (error) => {

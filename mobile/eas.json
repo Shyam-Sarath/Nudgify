@@ -11,14 +11,17 @@
       }
     },
     "preview": {
+      "android": {
+        "buildType": "apk"
+      },
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://your-deployed-backend-url.com"
+        "EXPO_PUBLIC_API_URL": "https://YOUR-DEPLOYED-BACKEND-URL-HERE.com"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://your-deployed-backend-url.com"
+        "EXPO_PUBLIC_API_URL": "https://YOUR-DEPLOYED-BACKEND-URL-HERE.com"
       }
     }
   },

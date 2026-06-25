@@ -7,7 +7,7 @@ const getProfile = async (req, res) => {
 
   const { data, error } = await supabase
     .from('users')
-    .select('id, name, email, created_at')
+    .select('id, name, email, profile_image, created_at')
     .eq('id', customerId)
     .single();
 
@@ -100,6 +100,59 @@ const getDishDetail = async (req, res) => {
   });
 };
 
+// Upload Customer Profile Image
+const uploadProfileImage = async (req, res) => {
+  const customerId = req.user.id;
+  const { imageBase64 } = req.body;
+
+  if (!imageBase64) throw new AppError('Image data is required', 400);
+
+  let contentType = 'image/png';
+  let base64Data = imageBase64;
+
+  if (imageBase64.includes(';base64,')) {
+    const parts = imageBase64.split(';base64,');
+    contentType = parts[0].replace('data:', '');
+    base64Data = parts[1];
+  }
+
+  const buffer = Buffer.from(base64Data, 'base64');
+  const fileExtension = contentType.split('/')[1] || 'png';
+  const fileName = `customer_${customerId}_${Date.now()}.${fileExtension}`;
+
+  const bucket = 'profile-images';
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .upload(fileName, buffer, {
+      contentType,
+      upsert: true,
+    });
+
+  if (error) throw new AppError(`Storage upload failed: ${error.message}`, 500);
+
+  const { data: urlData } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(fileName);
+
+  const publicUrl = urlData?.publicUrl;
+
+  const { data: profile, error: dbError } = await supabase
+    .from('users')
+    .update({ profile_image: publicUrl })
+    .eq('id', customerId)
+    .select()
+    .single();
+
+  if (dbError) throw new AppError(dbError.message, 500);
+
+  res.status(200).json({
+    success: true,
+    message: 'Profile image uploaded successfully',
+    data: { profile_image: publicUrl, profile },
+  });
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -107,4 +160,5 @@ module.exports = {
   getChefDetail,
   getAllDishes,
   getDishDetail,
+  uploadProfileImage,
 };

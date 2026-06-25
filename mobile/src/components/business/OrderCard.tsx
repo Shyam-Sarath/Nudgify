@@ -2,16 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme';
 import Card from '../ui/Card';
-import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 
 interface OrderItem {
   id: number;
   quantity: number;
   price: number | string;
-  dishes?: {
-    name: string;
-  };
+  dishes?: { name: string };
 }
 
 interface OrderData {
@@ -20,12 +17,10 @@ interface OrderData {
   total_amount: number | string;
   created_at: string;
   delivery_address?: string;
+  customer_name?: string;
+  chef_name?: string;
   order_items?: OrderItem[];
-  customers?: {
-    users?: {
-      name?: string;
-    };
-  };
+  customers?: { users?: { name?: string } };
 }
 
 interface Props {
@@ -38,6 +33,15 @@ interface Props {
   style?: StyleProp<ViewStyle>;
 }
 
+const STATUS_CONFIG: Record<string, { label: string; emoji: string; color: string; bg: string }> = {
+  pending:   { label: 'New Order',  emoji: '🕐', color: '#FF6B35', bg: '#FF6B3515' },
+  preparing: { label: 'Preparing',  emoji: '🍳', color: '#F59E0B', bg: '#F59E0B15' },
+  ready:     { label: 'Ready',      emoji: '✅', color: '#10B981', bg: '#10B98115' },
+  completed: { label: 'Completed',  emoji: '🎉', color: '#6366F1', bg: '#6366F115' },
+  delivered: { label: 'Delivered',  emoji: '🚀', color: '#3B82F6', bg: '#3B82F615' },
+  rejected:  { label: 'Declined',   emoji: '❌', color: '#EF4444', bg: '#EF444415' },
+};
+
 export const OrderCard: React.FC<Props> = ({
   order,
   isChef = false,
@@ -49,32 +53,13 @@ export const OrderCard: React.FC<Props> = ({
 }) => {
   const { colors, spacing, radius, typography } = useTheme();
 
-  const getStatusVariant = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'new':
-      case 'pending':
-        return 'primary';
-      case 'preparing':
-        return 'warning';
-      case 'ready':
-        return 'success';
-      case 'delivered':
-      case 'completed':
-        return 'info';
-      default:
-        return 'error';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    if (status.toLowerCase() === 'pending') return 'New';
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
+  const statusKey = order.status?.toLowerCase() || 'pending';
+  const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG['pending'];
 
   const totalFormatted =
     typeof order.total_amount === 'number'
       ? order.total_amount.toFixed(2)
-      : parseFloat(order.total_amount).toFixed(2);
+      : parseFloat(String(order.total_amount || 0)).toFixed(2);
 
   const formattedDate = new Date(order.created_at).toLocaleDateString(undefined, {
     month: 'short',
@@ -83,58 +68,82 @@ export const OrderCard: React.FC<Props> = ({
     minute: '2-digit',
   });
 
-  const customerName = order.customers?.users?.name || 'Customer';
+  const customerName = order.customer_name || order.customers?.users?.name || 'Customer';
   const itemsText = order.order_items
-    ?.map((item) => `${item.dishes?.name || 'Dish'} x ${item.quantity}`)
-    .join(', ') || 'No items listed';
+    ?.map((item) => `${item.dishes?.name || 'Dish'} ×${item.quantity}`)
+    .join('  •  ') || 'No items listed';
 
   return (
     <Card variant="outlined" style={[styles.container, style]}>
-      <Pressable onPress={onPress}>
-        <View style={styles.header}>
+      <Pressable onPress={onPress} style={styles.inner}>
+        {/* Header Row */}
+        <View style={styles.headerRow}>
           <View>
-            <Text style={[styles.orderNumber, { color: colors.text, fontFamily: typography.fontFamilies.heading }]}>
-              #ORD-{order.id}
+            <Text style={[styles.orderNum, { color: colors.text, fontFamily: typography.fontFamilies.heading }]}>
+              #NDG-{order.id}
             </Text>
             <Text style={[styles.date, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
               {formattedDate}
             </Text>
           </View>
-          <Badge label={getStatusLabel(order.status)} variant={getStatusVariant(order.status)} />
-        </View>
-
-        <View style={[styles.body, { borderBottomColor: colors.border + '50' }]}>
-          {isChef && (
-            <Text style={[styles.customerInfo, { color: colors.text, fontFamily: typography.fontFamilies.primaryMedium }]}>
-              Ordered by {customerName}
-            </Text>
-          )}
-          <Text style={[styles.items, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]} numberOfLines={2}>
-            {itemsText}
-          </Text>
-          <View style={styles.priceRow}>
-            <Text style={[styles.totalLabel, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
-              Total Amount
-            </Text>
-            <Text style={[styles.totalAmount, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
-              ${totalFormatted}
+          <View style={[styles.statusBadge, { backgroundColor: config.bg, borderRadius: radius.full }]}>
+            <Text style={styles.statusEmoji}>{config.emoji}</Text>
+            <Text style={[styles.statusLabel, { color: config.color, fontFamily: typography.fontFamilies.primaryBold }]}>
+              {config.label}
             </Text>
           </View>
         </View>
 
-        {isChef && order.status.toLowerCase() === 'pending' && (
-          <View style={styles.actions}>
+        {/* Customer name (chef view) */}
+        {isChef && (
+          <View style={[styles.customerRow, { backgroundColor: colors.surfaceContainerLow, borderRadius: radius.sm }]}>
+            <Text style={styles.personEmoji}>👤</Text>
+            <Text style={[styles.customerName, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
+              {customerName}
+            </Text>
+          </View>
+        )}
+
+        {/* Items */}
+        <Text style={[styles.items, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]} numberOfLines={2}>
+          {itemsText}
+        </Text>
+
+        {/* Delivery Address */}
+        {order.delivery_address ? (
+          <View style={styles.addressRow}>
+            <Text style={styles.addressIcon}>📍</Text>
+            <Text style={[styles.address, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]} numberOfLines={1}>
+              {order.delivery_address}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Total Row */}
+        <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
+          <Text style={[styles.totalLabel, { color: colors.mutedText, fontFamily: typography.fontFamilies.primary }]}>
+            Order Total
+          </Text>
+          <Text style={[styles.totalAmount, { color: colors.primary, fontFamily: typography.fontFamilies.heading }]}>
+            ${totalFormatted}
+          </Text>
+        </View>
+
+        {/* Chef Actions */}
+        {isChef && statusKey === 'pending' && (
+          <View style={styles.actionsRow}>
             {onDecline && (
               <Button
                 title="Decline"
                 variant="outline"
                 onPress={onDecline}
-                style={[styles.actionBtn, { marginRight: spacing.unit * 2 }]}
+                style={[styles.actionBtn, { marginRight: 10, borderColor: '#EF4444' }]}
+                textStyle={{ color: '#EF4444' }}
               />
             )}
             {onAccept && (
               <Button
-                title="Accept"
+                title="✓ Accept"
                 variant="primary"
                 onPress={onAccept}
                 style={styles.actionBtn}
@@ -143,15 +152,13 @@ export const OrderCard: React.FC<Props> = ({
           </View>
         )}
 
-        {isChef && order.status.toLowerCase() === 'preparing' && onMarkReady && (
-          <View style={styles.actions}>
-            <Button
-              title="Mark as Ready"
-              variant="secondary"
-              onPress={onMarkReady}
-              style={styles.fullWidthBtn}
-            />
-          </View>
+        {isChef && statusKey === 'preparing' && onMarkReady && (
+          <Button
+            title="🚀 Mark as Ready"
+            variant="secondary"
+            onPress={onMarkReady}
+            style={styles.fullBtn}
+          />
         )}
       </Pressable>
     </Card>
@@ -159,60 +166,53 @@ export const OrderCard: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
+  container: { marginBottom: 16 },
+  inner: { padding: 4 },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  header: {
+  orderNum: { fontSize: 15, fontWeight: '700' },
+  date: { fontSize: 11, marginTop: 2 },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 5,
+  },
+  statusEmoji: { fontSize: 12 },
+  statusLabel: { fontSize: 11 },
+  customerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 8,
+    gap: 6,
+  },
+  personEmoji: { fontSize: 13 },
+  customerName: { fontSize: 13 },
+  items: { fontSize: 13, lineHeight: 18, marginBottom: 6 },
+  addressRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 4 },
+  addressIcon: { fontSize: 12 },
+  address: { fontSize: 12, flex: 1 },
+  totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  orderNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  date: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  body: {
-    borderBottomWidth: 1,
-    paddingBottom: 12,
-    marginBottom: 12,
-  },
-  customerInfo: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  items: {
-    fontSize: 14,
-    lineHeight: 20,
+    borderTopWidth: 1,
+    paddingTop: 10,
+    marginTop: 4,
     marginBottom: 8,
   },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  totalLabel: {
-    fontSize: 14,
-  },
-  totalAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  actionBtn: {
-    flex: 1,
-  },
-  fullWidthBtn: {
-    width: '100%',
-  },
+  totalLabel: { fontSize: 13 },
+  totalAmount: { fontSize: 20, fontWeight: '800' },
+  actionsRow: { flexDirection: 'row', marginTop: 4 },
+  actionBtn: { flex: 1 },
+  fullBtn: { width: '100%', marginTop: 4 },
 });
+
 export default OrderCard;

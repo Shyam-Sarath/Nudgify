@@ -12,6 +12,9 @@ interface DishData {
   image_url?: string;
   prep_time?: string;
   calories?: number | string;
+  category?: string;
+  spice_level?: number; // 0-3
+  is_popular?: boolean;
 }
 
 interface Props {
@@ -52,6 +55,11 @@ export const DishCard: React.FC<Props> = ({
               ${priceFormatted}
             </Text>
           </View>
+          {dish.is_popular && (
+            <View style={[styles.bestSellerBadge, { backgroundColor: colors.secondary, borderRadius: radius.sm }]}>
+              <Text style={[styles.bestSellerText, { fontFamily: typography.fontFamilies.primaryBold }]}>🏆 Best Seller</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.details}>
@@ -109,6 +117,13 @@ export const DishCard: React.FC<Props> = ({
                 </Text>
               </View>
             )}
+            {dish.spice_level !== undefined && dish.spice_level > 0 && (
+              <View style={[styles.metaItem, { marginLeft: spacing.unit * 2 }]}>
+                <Text style={styles.metaText}>
+                  {'🌶'.repeat(Math.min(dish.spice_level, 3))}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </Pressable>
@@ -146,6 +161,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  bestSellerBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  bestSellerText: {
+    fontSize: 10,
+    color: '#ffffff',
   },
   priceText: {
     fontSize: 14,

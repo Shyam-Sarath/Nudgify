@@ -2,6 +2,7 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 import { useAuthStore } from './src/store/store';
@@ -31,16 +32,18 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <NavigationContainer>
-        <StatusBar style="auto" />
-        {!isAuthenticated ? (
-          <AuthNavigator />
-        ) : user?.role === 'chef' ? (
-          <ChefNavigator />
-        ) : (
-          <CustomerNavigator />
-        )}
-      </NavigationContainer>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <StatusBar style="auto" />
+          {!isAuthenticated ? (
+            <AuthNavigator />
+          ) : user?.role === 'chef' ? (
+            <ChefNavigator />
+          ) : (
+            <CustomerNavigator />
+          )}
+        </NavigationContainer>
+      </SafeAreaProvider>
     </ThemeProvider>
   );
 }

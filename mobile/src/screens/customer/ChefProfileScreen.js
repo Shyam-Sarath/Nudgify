@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, Image, ScrollView, SafeAreaView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Image, ScrollView, SafeAreaView, Pressable, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { MessageCircle } from 'lucide-react-native';
 import apiClient from '../../config/api';
 import { useAuthStore, useCartStore } from '../../store/store';
 import { useTheme } from '../../theme';
-import { DishCard, MenuSection, Button } from '../../components';
+import { DishCard, MenuSection, Button, CartStickyPreview } from '../../components';
 
 export default function ChefProfileScreen({ route, navigation }) {
   const { chefId, chefName } = route.params;
@@ -33,14 +34,6 @@ export default function ChefProfileScreen({ route, navigation }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getCartCount = () => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
-  };
-
-  const getCartTotal = () => {
-    return cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
   };
 
   const filteredDishes = dishes.filter((dish) => {
@@ -127,6 +120,16 @@ export default function ChefProfileScreen({ route, navigation }) {
               </Text>
             </View>
           </View>
+
+          <TouchableOpacity 
+            style={[styles.chatButton, { backgroundColor: colors.primary, borderRadius: radius.md }]} 
+            onPress={() => navigation.navigate('CustomerChat', { chefId, chefName: chef?.users?.name || chefName })}
+          >
+            <MessageCircle color="#ffffff" size={20} style={{ marginRight: 8 }} />
+            <Text style={[styles.chatButtonText, { fontFamily: typography.fontFamilies.primaryBold }]}>
+              Chat with Chef
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Menu Section */}
@@ -145,12 +148,20 @@ export default function ChefProfileScreen({ route, navigation }) {
                 key={dish.id}
                 dish={dish}
                 onAddPress={() => {
-                  addToCart(dish, chefId);
-                  Alert.alert('Added', `${dish.name} added to cart!`);
+                  const res = addToCart(dish, chefId);
+                  if (res?.conflict) {
+                    Alert.alert('Different Chef', 'You already have items from another chef. Please clear cart to continue.');
+                  } else {
+                    Alert.alert('Added', `${dish.name} added to cart!`);
+                  }
                 }}
                 onPress={() => {
-                  addToCart(dish, chefId);
-                  Alert.alert('Added', `${dish.name} added to cart!`);
+                  const res = addToCart(dish, chefId);
+                  if (res?.conflict) {
+                    Alert.alert('Different Chef', 'You already have items from another chef. Please clear cart to continue.');
+                  } else {
+                    Alert.alert('Added', `${dish.name} added to cart!`);
+                  }
                 }}
               />
             ))}
@@ -163,26 +174,7 @@ export default function ChefProfileScreen({ route, navigation }) {
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom CTA */}
-      {getCartCount() > 0 && (
-        <View style={[styles.stickyCartContainer, { paddingHorizontal: spacing.containerPaddingMobile }]}>
-          <Pressable
-            style={[styles.cartCta, { backgroundColor: colors.secondary, borderRadius: radius.full }]}
-            onPress={() => navigation.navigate('Cart')}
-          >
-            <View style={styles.cartCtaLeft}>
-              <Text style={[styles.cartCtaLabel, { color: '#ffffff', fontFamily: typography.fontFamilies.primaryBold }]}>
-                View Cart
-              </Text>
-            </View>
-            <View style={[styles.cartBadge, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
-              <Text style={[styles.cartBadgeText, { color: '#ffffff', fontFamily: typography.fontFamilies.primaryBold }]}>
-                {getCartCount()} Items • ${getCartTotal().toFixed(2)}
-              </Text>
-            </View>
-          </Pressable>
-        </View>
-      )}
+      <CartStickyPreview />
     </SafeAreaView>
   );
 }
@@ -290,6 +282,17 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 15,
+  },
+  chatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    paddingVertical: 12,
+  },
+  chatButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
   },
   dishList: {
     marginTop: 16,

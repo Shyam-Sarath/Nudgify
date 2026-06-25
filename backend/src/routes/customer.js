@@ -7,6 +7,7 @@ const customerController = require('../controllers/customerController');
 // Customer Profile
 router.get('/profile', verifyToken, checkRole(['customer']), asyncHandler(customerController.getProfile));
 router.put('/profile', verifyToken, checkRole(['customer']), asyncHandler(customerController.updateProfile));
+router.post('/profile/image', verifyToken, checkRole(['customer']), asyncHandler(customerController.uploadProfileImage));
 
 // Browse Chefs
 router.get('/chefs', asyncHandler(customerController.getAllChefs));

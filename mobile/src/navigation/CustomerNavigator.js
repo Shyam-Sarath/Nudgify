@@ -12,10 +12,12 @@ import ChefProfileScreen from '../screens/customer/ChefProfileScreen';
 import CheckoutScreen from '../screens/customer/CheckoutScreen';
 import OrderTrackingScreen from '../screens/customer/OrderTrackingScreen';
 import DishDetailsScreen from '../screens/customer/DishDetailsScreen';
+import CustomerChatScreen from '../screens/customer/CustomerChatScreen';
 import SearchScreen from '../screens/customer/SearchScreen';
 import FavoritesScreen from '../screens/customer/FavoritesScreen';
 import NotificationsScreen from '../screens/customer/NotificationsScreen';
 import SettingsScreen from '../screens/customer/SettingsScreen';
+import PrivacyPolicyScreen from '../screens/common/PrivacyPolicyScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
@@ -33,6 +35,7 @@ function HomeStackScreen() {
       <HomeStack.Screen name="Checkout" component={CheckoutScreen} />
       <HomeStack.Screen name="OrderTracking" component={OrderTrackingScreen} />
       <HomeStack.Screen name="Notifications" component={NotificationsScreen} />
+      <HomeStack.Screen name="CustomerChat" component={CustomerChatScreen} />
     </HomeStack.Navigator>
   );
 }
@@ -52,6 +55,7 @@ function OrdersStackScreen() {
     <OrdersStack.Navigator id="orders-stack" screenOptions={{ headerShown: false }}>
       <OrdersStack.Screen name="OrdersMain" component={CustomerOrdersScreen} />
       <OrdersStack.Screen name="OrderTracking" component={OrderTrackingScreen} />
+      <OrdersStack.Screen name="CustomerChat" component={CustomerChatScreen} />
     </OrdersStack.Navigator>
   );
 }
@@ -62,6 +66,7 @@ function ProfileStackScreen() {
       <ProfileStack.Screen name="ProfileMain" component={CustomerProfileScreen} />
       <ProfileStack.Screen name="Settings" component={SettingsScreen} />
       <ProfileStack.Screen name="Notifications" component={NotificationsScreen} />
+      <ProfileStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
     </ProfileStack.Navigator>
   );
 }
@@ -77,8 +82,8 @@ export default function CustomerNavigator() {
           let IconComponent;
           if (route.name === 'Home') IconComponent = icons.home;
           else if (route.name === 'Search') IconComponent = icons.search;
-          else if (route.name === 'Orders') IconComponent = icons.cart;
-          else if (route.name === 'Favorites') IconComponent = icons.favorite;
+          else if (route.name === 'Orders') IconComponent = icons.basket;
+          else if (route.name === 'Cart') IconComponent = icons.cart;
           else if (route.name === 'Profile') IconComponent = icons.profile;
 
           return IconComponent ? (
@@ -101,7 +106,7 @@ export default function CustomerNavigator() {
       <Tab.Screen name="Home" component={HomeStackScreen} options={{ title: 'Home' }} />
       <Tab.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
       <Tab.Screen name="Orders" component={OrdersStackScreen} options={{ title: 'Orders' }} />
-      <Tab.Screen name="Favorites" component={FavoritesScreen} options={{ title: 'Favorites' }} />
+      <Tab.Screen name="Cart" component={CartStackScreen} options={{ title: 'Cart' }} />
       <Tab.Screen name="Profile" component={ProfileStackScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );

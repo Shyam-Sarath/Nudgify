@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { useAuthStore } from '../store/store';
 
 function resolveApiUrl() {
   const configured =
@@ -17,13 +18,33 @@ function resolveApiUrl() {
 
 export const API_URL = resolveApiUrl();
 
-// #region agent log
-fetch('http://127.0.0.1:7325/ingest/ec45b7eb-196d-4933-afd3-e540532f9309',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'78bd0c'},body:JSON.stringify({sessionId:'78bd0c',runId:'initial',hypothesisId:'C',location:'mobile/src/config/api.js:resolveApiUrl',message:'Resolved mobile API URL',data:{platform:Platform.OS,apiUrl:API_URL,configuredExtra:Constants.expoConfig?.extra?.apiUrl||null},timestamp:Date.now()})}).catch(()=>{});
-// #endregion
-
 const apiClient = axios.create({
   baseURL: API_URL,
   timeout: 10000,
 });
+
+// Add a request interceptor to inject the token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState().token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Add a response interceptor to handle 401 Unauthorized
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Clear auth store on 401 Unauthorized
+      useAuthStore.getState().logout();
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default apiClient;

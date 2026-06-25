@@ -53,15 +53,22 @@ const createDish = async (req, res) => {
   const chefId = req.user.id;
   const { name, description, price, category, availability } = req.body;
 
-  if (!name || !price) throw new AppError('Name and price are required', 400);
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    throw new AppError('Dish name is required', 400);
+  }
+
+  const parsedPrice = parseFloat(price);
+  if (isNaN(parsedPrice) || parsedPrice <= 0) {
+    throw new AppError('Price must be a valid number greater than 0', 400);
+  }
 
   const { data, error } = await supabase
     .from('dishes')
     .insert({
       chef_id: chefId,
-      name,
+      name: name.trim(),
       description,
-      price,
+      price: parsedPrice,
       category,
       availability: availability ?? true,
     })
