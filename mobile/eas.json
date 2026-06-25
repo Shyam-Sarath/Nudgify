@@ -16,12 +16,12 @@
       },
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR-DEPLOYED-BACKEND-URL-HERE.com"
+        "EXPO_PUBLIC_API_URL": "https://nudgify.onrender.com"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR-DEPLOYED-BACKEND-URL-HERE.com"
+        "EXPO_PUBLIC_API_URL": "https://nudgify.onrender.com"
       }
     }
   },

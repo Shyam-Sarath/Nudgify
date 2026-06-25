@@ -7,7 +7,7 @@ function resolveApiUrl() {
   const configured =
     Constants.expoConfig?.extra?.apiUrl ||
     process.env.EXPO_PUBLIC_API_URL ||
-    'http://localhost:5001';
+    'https://nudgify.onrender.com';
 
   if (Platform.OS === 'android' && configured.includes('localhost')) {
     return configured.replace('localhost', '10.0.2.2');
