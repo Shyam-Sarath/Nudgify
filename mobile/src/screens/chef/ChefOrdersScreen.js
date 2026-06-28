@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Alert } from 'react-native';
 import apiClient from '../../config/api';
 import { useAuthStore, useDataStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { OrderCard, Skeleton, EmptyState } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChefOrdersScreen() {
   const { colors, spacing, typography } = useTheme();

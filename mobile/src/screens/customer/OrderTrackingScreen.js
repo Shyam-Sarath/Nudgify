@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
   StyleSheet, Text, View, Image, ScrollView,
-  SafeAreaView, Pressable, Alert, Animated
+  Pressable, Alert, Animated
 } from 'react-native';
 import { useTheme } from '../../theme';
 import { Card, Button, Divider } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const STEPS = [
   { key: 'pending',   label: 'Order Received',    sub: 'Your order is confirmed',         emoji: '🧾' },
@@ -64,7 +65,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
         paddingHorizontal: spacing.containerPaddingMobile,
         backgroundColor: colors.primary,
       }]}>
-        <Pressable onPress={() => navigation.navigate('Home')} style={styles.backBtn}>
+        <Pressable onPress={() => navigation.navigate('HomeMain')} style={styles.backBtn}>
           <Text style={styles.backText}>← Home</Text>
         </Pressable>
         <Text style={[styles.headerTitle, { fontFamily: typography.fontFamilies.heading }]}>

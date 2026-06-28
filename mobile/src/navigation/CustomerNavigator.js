@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Customer screens
 import CustomerHomeScreen from '../screens/customer/CustomerHomeScreen';
@@ -73,6 +74,7 @@ function ProfileStackScreen() {
 
 export default function CustomerNavigator() {
   const { colors, icons } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -93,8 +95,8 @@ export default function CustomerNavigator() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedText,
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 8,
           backgroundColor: colors.background,
           borderTopWidth: 1,

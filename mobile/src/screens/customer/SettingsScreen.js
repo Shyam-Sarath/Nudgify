@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, SafeAreaView, Pressable, Switch, Alert } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Switch, Alert } from 'react-native';
 import { useTheme } from '../../theme';
 import { Card, Divider } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen({ navigation }) {
   const { colors, spacing, radius, typography } = useTheme();

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, Alert, Pressable, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Alert, Pressable, ScrollView, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { Input, Button, Divider } from '../../components';
 import apiClient from '../../config/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MENU_ITEMS = [
   { icon: '🔔', label: 'Notifications', screen: 'Notifications' },

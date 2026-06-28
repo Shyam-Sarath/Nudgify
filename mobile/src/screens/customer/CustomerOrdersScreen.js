@@ -1,13 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  StyleSheet, Text, View, FlatList, SafeAreaView,
-  Alert, Pressable
+  StyleSheet, Text, View, FlatList, Alert, Pressable
 } from 'react-native';
 import apiClient from '../../config/api';
 import { useDataStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { OrderCard, Skeleton, EmptyState } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const STATUS_TABS = ['All', 'Pending', 'Preparing', 'Ready', 'Completed'];
 
@@ -106,7 +106,7 @@ export default function CustomerOrdersScreen({ navigation }) {
               : `You don't have any ${activeTab.toLowerCase()} orders.`
           }
           actionTitle="Browse Chefs"
-          onAction={() => navigation.navigate('Home')}
+          onAction={() => navigation.navigate('HomeMain')}
         />
       ) : (
         <FlatList

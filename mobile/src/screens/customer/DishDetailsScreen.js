@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, SafeAreaView, Image, Pressable, Alert } from 'react-native';
+import { StyleSheet, Text, View, Image, Pressable, Alert } from 'react-native';
 import { useTheme } from '../../theme';
 import { Button, Card, CartStickyPreview } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function DishDetailsScreen({ route, navigation }) {
   const { dish } = route.params;

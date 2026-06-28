@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, Image, Pressable, Alert, SafeAreaView, ActivityIndicator, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Image, Pressable, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../config/api';
 import { useDataStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { Card, Button, Input, Modal, Skeleton, EmptyState, Badge, Divider } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChefMenuScreen() {
   const { colors, spacing, typography, radius } = useTheme();

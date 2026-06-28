@@ -112,8 +112,8 @@ export default function ChefNavigator() {
           styles.tabBar,
           {
             backgroundColor: colors.surface,
-            paddingBottom: insets.bottom > 0 ? insets.bottom - 10 : 15,
-            height: Platform.OS === 'ios' ? 85 + insets.bottom : 75,
+            paddingBottom: insets.bottom,
+            height: 75 + insets.bottom,
             borderColor: colors.border,
           }
         ],

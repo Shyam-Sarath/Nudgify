@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { ArrowLeft, Send } from 'lucide-react-native';
 import apiClient from '../../config/api';
 import socketService from '../../services/socket';
 import { useAuthStore } from '../../store/store';
 import { useTheme } from '../../theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChefChatScreen({ route, navigation }) {
   const { customerId, customerName } = route.params;

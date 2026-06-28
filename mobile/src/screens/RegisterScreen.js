@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, View, Text, Alert, StyleSheet, Pressable } from 'react-native';
+import { ScrollView, View, Text, Alert, StyleSheet, Pressable } from 'react-native';
 import apiClient from '../config/api';
 import { useAuthStore } from '../store/store';
 import { Input, Button } from '../components';
 import { useTheme } from '../theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState('');

@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, FlatList, SafeAreaView, Pressable, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Pressable, Alert } from 'react-native';
 import { useCartStore, useDataStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { CartItem, Button, EmptyState, Divider } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const DELIVERY_FEE = 4.5;
 const TAX_RATE = 0.08; // 8%
@@ -46,7 +47,7 @@ export default function CustomerCartScreen({ navigation }) {
           title="Your Cart is Empty"
           description="Browse nearby home chefs to add organic homemade meals to your cart."
           actionTitle="Browse Chefs"
-          onAction={() => navigation.navigate('Home')}
+          onAction={() => navigation.navigate('HomeMain')}
         />
         {orders && orders.length > 0 && (
           <Pressable

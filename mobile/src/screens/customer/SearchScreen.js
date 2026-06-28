@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../theme';
 import { useCartStore } from '../../store/store';
 import { SearchBar, Chip, DishCard, ChefCard, EmptyState, CartStickyPreview } from '../../components';
 import apiClient from '../../config/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const CATEGORIES = ['All', 'Spanish', 'Italian', 'Baking', 'Healthy', 'Seafood', 'Desserts'];
 

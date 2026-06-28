@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  StyleSheet, Text, View, Pressable, Alert, SafeAreaView,
-  ScrollView, Image, TouchableOpacity, ActivityIndicator
+  StyleSheet, Text, View, Pressable, Alert, ScrollView, Image, TouchableOpacity, ActivityIndicator
 } from 'react-native';
 import { MessageCircle, Shield } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,6 +8,7 @@ import apiClient from '../../config/api';
 import { useAuthStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { Card, Button, Input, Divider } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChefProfileScreen({ navigation }) {
   const { user, logout } = useAuthStore();

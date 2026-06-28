@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  StyleSheet, Text, View, SafeAreaView, ScrollView,
+  StyleSheet, Text, View, ScrollView,
   RefreshControl, Alert, Image, Pressable, Animated,
 } from 'react-native';
 import apiClient from '../../config/api';
 import { useAuthStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { OrderCard, Card, Skeleton } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const STATUS_PIPELINE = [
   { key: 'pending',   label: 'Pending',   emoji: '🕐' },

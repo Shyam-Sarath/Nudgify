@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { ArrowLeft, Shield } from 'lucide-react-native';
 import { useTheme } from '../../theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PrivacyPolicyScreen({ navigation }) {
   const { colors, spacing, radius, typography } = useTheme();

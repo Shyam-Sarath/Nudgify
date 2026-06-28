@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChefAnalyticsScreen() {
   const { colors, typography } = useTheme();

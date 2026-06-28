@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, Text, View, Image, ScrollView, TextInput, Alert, SafeAreaView, Pressable, PanResponder, Animated, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Image, ScrollView, TextInput, Alert, Pressable, PanResponder, Animated, Dimensions } from 'react-native';
 import apiClient from '../../config/api';
 import { useCartStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { Button, Card, Divider } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 

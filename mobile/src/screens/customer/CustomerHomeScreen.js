@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
-  StyleSheet, Text, View, FlatList, ScrollView, SafeAreaView,
-  Pressable, Alert, Animated, Dimensions
+  StyleSheet, Text, View, FlatList, ScrollView, Pressable, Alert, Animated, Dimensions
 } from 'react-native';
 import apiClient from '../../config/api';
 import { useDataStore, useCartStore, useAuthStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { SearchBar, ChefCard, DishCard, Skeleton, CartStickyPreview } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -106,7 +106,7 @@ export default function CustomerHomeScreen({ navigation }) {
       <View style={[styles.appBar, { paddingHorizontal: spacing.containerPaddingMobile }]}>
         <View style={styles.locationContainer}>
           <LocationIcon size={18} color={colors.primary} />
-          <Text style={[styles.locationText, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
+          <Text numberOfLines={1} style={[styles.locationText, { color: colors.text, fontFamily: typography.fontFamilies.primaryBold }]}>
             San Francisco, CA
           </Text>
           <ExpandMoreIcon size={16} color={colors.mutedText} />
@@ -305,14 +305,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  locationContainer: { flexDirection: 'row', alignItems: 'center' },
-  locationText: { fontSize: 13, marginHorizontal: 4 },
+  locationContainer: { flexDirection: 'row', alignItems: 'center', maxWidth: '40%' },
+  locationText: { fontSize: 13, marginHorizontal: 4, flexShrink: 1 },
   logo: {
     fontSize: 22,
     fontWeight: '800',
     position: 'absolute',
     left: '50%',
     marginLeft: -40,
+    textAlign: 'center',
   },
   notificationBtn: { padding: 6 },
   scrollContent: { paddingBottom: 120 },

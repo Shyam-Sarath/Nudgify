@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, Alert, StyleSheet } from 'react-native';
+import { View, Text, Alert, StyleSheet } from 'react-native';
 import apiClient from '../config/api';
 import { Input, Button } from '../components';
 import { useTheme } from '../theme';
 import { useAuthStore } from '../store/store';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');

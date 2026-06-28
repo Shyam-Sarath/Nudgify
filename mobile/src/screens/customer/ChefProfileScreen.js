@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, Image, ScrollView, SafeAreaView, Pressable, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, Image, ScrollView, Pressable, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { MessageCircle } from 'lucide-react-native';
 import apiClient from '../../config/api';
 import { useAuthStore, useCartStore } from '../../store/store';
 import { useTheme } from '../../theme';
 import { DishCard, MenuSection, Button, CartStickyPreview } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChefProfileScreen({ route, navigation }) {
   const { chefId, chefName } = route.params;

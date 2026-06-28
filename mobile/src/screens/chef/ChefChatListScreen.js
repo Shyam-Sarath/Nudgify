@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { ArrowLeft, MessageSquare } from 'lucide-react-native';
 import apiClient from '../../config/api';
 import { useAuthStore } from '../../store/store';
 import { useTheme } from '../../theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChefChatListScreen({ navigation }) {
   const { user } = useAuthStore();
